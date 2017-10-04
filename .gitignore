@@ -99,3 +99,21 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE (Eclipse)
+.classpath
+.project
+.settings
+build
+
+# IDE (Intellij IDEA)
+*.iml
+.idea
+out
+
+# Runtime
+logs
