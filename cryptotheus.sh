@@ -6,6 +6,6 @@ if [ ! -d logs ]; then
   mkdir logs
 fi
 
-nohup python cryptotheus/ticker.py > logs/ticker.log 2>&1 &
+nohup python cryptotheus.py > logs/cryptotheus.log 2>&1 &
 
 popd > /dev/null
