@@ -56,7 +56,7 @@ class TickerGauges(object):
         g.labels("%s:%s" % (self.__site, code)).set(float(ltp) if ltp is not None else None)
 
 
-class TickerContext(object):
+class CryptotheusContext(object):
     # Metrics Server
     __HOST = getenv('metric_host', 'localhost')
     __PORT = getenv('metric_port', 10001)

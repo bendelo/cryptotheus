@@ -4,14 +4,14 @@ import cryptotheus
 
 
 def main():
-    context = cryptotheus.TickerContext()
+    context = cryptotheus.Context()
     context.launch_server()
 
-    cryptotheus.BitfinexThread(context).start()
-    cryptotheus.BitflyerThread(context).start()
-    cryptotheus.CoincheckThread(context).start()
-    cryptotheus.PoloniexThread(context).start()
-    cryptotheus.ZaifThread(context).start()
+    cryptotheus.BitfinexTicker(context).start()
+    cryptotheus.BitflyerTicker(context).start()
+    cryptotheus.CoincheckTicker(context).start()
+    cryptotheus.PoloniexTicker(context).start()
+    cryptotheus.ZaifTicker(context).start()
 
 
 if __name__ == '__main__':

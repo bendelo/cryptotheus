@@ -1,14 +1,14 @@
-from . import ticker_bitfinex
-from . import ticker_bitflyer
-from . import ticker_coincheck
-from . import ticker_context
-from . import ticker_poloniex
-from . import ticker_zaif
+from cryptotheus import context
+from cryptotheus import ticker_bitfinex
+from cryptotheus import ticker_bitflyer
+from cryptotheus import ticker_coincheck
+from cryptotheus import ticker_poloniex
+from cryptotheus import ticker_zaif
 
-TickerContext = ticker_context.TickerContext
+Context = context.CryptotheusContext
 
-BitfinexThread = ticker_bitfinex.BitfinexThread
-BitflyerThread = ticker_bitflyer.BitflyerThread
-CoincheckThread = ticker_coincheck.CoincheckThread
-PoloniexThread = ticker_poloniex.PoloniexThread
-ZaifThread = ticker_zaif.ZaifThread
+BitfinexTicker = ticker_bitfinex.BitfinexThread
+BitflyerTicker = ticker_bitflyer.BitflyerThread
+CoincheckTicker = ticker_coincheck.CoincheckThread
+PoloniexTicker = ticker_poloniex.PoloniexThread
+ZaifTicker = ticker_zaif.ZaifThread

@@ -5,7 +5,7 @@ from time import sleep
 
 from requests import get
 
-from cryptotheus.ticker_context import ProductType, TickerContext
+from cryptotheus.context import ProductType, CryptotheusContext
 
 
 class BitfinexThread(Thread):
@@ -71,7 +71,7 @@ class BitfinexThread(Thread):
 
 
 def main():
-    context = TickerContext(log_level=DEBUG)
+    context = CryptotheusContext(log_level=DEBUG)
     context.launch_server()
 
     target = BitfinexThread(context)
