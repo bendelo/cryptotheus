@@ -47,7 +47,7 @@ class TickerGauges(object):
         g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_ASK)).set(float(ask) if ask is not None else None)
         g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_BID)).set(float(bid) if bid is not None else None)
 
-        __mid = float(ask) + float(bid) * 0.5 if mid is None and ask is not None and bid is not None else mid
+        __mid = (float(ask) + float(bid)) * 0.5 if mid is None and ask is not None and bid is not None else mid
         g = self.__get_gauge(TickerGauges.__MID, 'ticker_mid_', 'Mid price for ')
         g.labels("%s:%s" % (self.__site, code)).set(__mid)
 
