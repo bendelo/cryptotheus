@@ -30,61 +30,53 @@ class TickerGauges(object):
         self.__site = site
         self.__product = product
 
-    def update_bbo(self, code, ask, bid):
-
+    def __get_gauge(self, gauges, prefix, description):
         with TickerGauges.__LCK:
-            g = TickerGauges.__BBO[self.__product] if self.__product in TickerGauges.__BBO else None
+            gauge = gauges[self.__product] if self.__product in gauges else None
 
-            if g is None:
+            if gauge is None:
                 n = self.__product.name.lower()
                 d = self.__product.name
-                g = Gauge('ticker_bbo_' + n, 'Best bid/offer price for ' + d, ['site', 'product', 'type'])
-                TickerGauges.__BBO[self.__product] = g
+                gauge = Gauge(prefix + n, description + d, ['id'])
+                gauges[self.__product] = gauge
 
-        g.labels(self.__site, code, self.__LABEL_ASK).set(float(ask) if ask is not None else None)
-        g.labels(self.__site, code, self.__LABEL_BID).set(float(bid) if bid is not None else None)
+        return gauge
 
-    def update_mid(self, code, mid):
+    def update_bbo(self, code, ask, bid, mid=None):
+        g = self.__get_gauge(TickerGauges.__BBO, 'ticker_bbo_', 'Best bid/offer price for ')
+        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_ASK)).set(float(ask) if ask is not None else None)
+        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_BID)).set(float(bid) if bid is not None else None)
 
-        with TickerGauges.__LCK:
-            g = TickerGauges.__MID[self.__product] if self.__product in TickerGauges.__MID else None
-
-            if g is None:
-                n = self.__product.name.lower()
-                d = self.__product.name
-                g = Gauge('ticker_mid_' + n, 'Mid price for ' + d, ['site', 'product'])
-                TickerGauges.__MID[self.__product] = g
-
-        g.labels(self.__site, code).set(float(mid) if mid is not None else None)
+        __mid = float(ask) + float(bid) * 0.5 if mid is None and ask is not None and bid is not None else mid
+        g = self.__get_gauge(TickerGauges.__MID, 'ticker_mid_', 'Mid price for ')
+        g.labels("%s:%s" % (self.__site, code)).set(__mid)
 
     def update_ltp(self, code, ltp):
-
-        with TickerGauges.__LCK:
-            g = TickerGauges.__LTP[self.__product] if self.__product in TickerGauges.__LTP else None
-
-            if g is None:
-                n = self.__product.name.lower()
-                d = self.__product.name
-                g = Gauge('ticker_ltp_' + n, 'Mid price for ' + d, ['site', 'product'])
-                TickerGauges.__LTP[self.__product] = g
-
-        g.labels(self.__site, code).set(float(ltp) if ltp is not None else None)
+        g = self.__get_gauge(TickerGauges.__LTP, 'ticker_ltp_', 'Last trade price for ')
+        g.labels("%s:%s" % (self.__site, code)).set(float(ltp) if ltp is not None else None)
 
 
 class TickerContext(object):
+    # Metrics Server
+    __HOST = getenv('metric_host', 'localhost')
+    __PORT = getenv('metric_port', 10001)
+
     # Logger
     __loggers = {}
-    __level = None
-
-    # Metrics Server
-    __listen_host = getenv('listen_host', 'localhost')
-    __listen_port = getenv('listen_port', 10001)
 
     # Metrics (site -> product -> Gauge)
     __sites = {}
 
-    def __init__(self, log_level=INFO):
+    # State
+    __active = True
+
+    def __init__(self, log_level=INFO, host=__HOST, port=__PORT):
         self.__level = log_level
+        self.__host = host
+        self.__port = port
+
+    def is_active(self):
+        return self.__active
 
     def get_ticker_gauges(self, site, product):
 
@@ -107,7 +99,7 @@ class TickerContext(object):
         logger = self.__loggers[name] if name in self.__loggers else None
 
         if logger is None:
-            formatter = Formatter(fmt='[%(asctime)-15s][%(levelname)-5s]%(message)s')
+            formatter = Formatter(fmt='[%(asctime)-15s][%(levelname)-5s][%(name)s] %(message)s')
             handler = StreamHandler()
             handler.setFormatter(formatter)
             handler.setLevel(self.__level)
@@ -120,4 +112,6 @@ class TickerContext(object):
 
     def launch_server(self):
 
-        start_http_server(self.__listen_port, addr=self.__listen_host)
+        self.get_logger(self.__class__.__name__).info('Starting server [%s:%s]', self.__host, self.__port)
+
+        start_http_server(self.__port, addr=self.__host)

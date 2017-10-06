@@ -2,7 +2,8 @@
 
 import cryptotheus
 
-if __name__ == '__main__':
+
+def main():
     context = cryptotheus.TickerContext()
     context.launch_server()
 
@@ -11,3 +12,7 @@ if __name__ == '__main__':
     cryptotheus.CoincheckThread(context).start()
     cryptotheus.PoloniexThread(context).start()
     cryptotheus.ZaifThread(context).start()
+
+
+if __name__ == '__main__':
+    main()

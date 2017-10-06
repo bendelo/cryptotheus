@@ -1,14 +1,12 @@
 global:
 
-  scrape_interval:     15s
+  scrape_interval:     60s
 
   evaluation_interval: 15s
 
 scrape_configs:
 
-  - job_name: 'ticker'
-
-    scrape_interval: 15s
+  - job_name: 'cryptotheus'
 
     static_configs:
       - targets: ['localhost:10001']

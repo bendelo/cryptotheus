@@ -10,28 +10,29 @@ from cryptotheus.ticker_context import ProductType, TickerContext
 
 class ZaifThread(Thread):
     __SITE = 'zaif'
-    __TARGET_PATH = getenv(__SITE + '_addr', 'https://api.zaif.jp/api/1/ticker/')
-    __TARGET_TIME = getenv(__SITE + '_time', 15)
-
+    __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api.zaif.jp/api/1/ticker/')
+    __INTERVAL = getenv(__SITE + '_interval', 15)
     __TARGETS = {
         'btc_jpy': ProductType.JPY_BTC,
         'bch_btc': ProductType.BTC_BCH,
         'eth_btc': ProductType.BTC_ETH,
     }
 
-    __context = None
-
-    def __init__(self, context):
+    def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL):
         super(ZaifThread, self).__init__()
+        self.__site = self.__SITE
+        self.__targets = self.__TARGETS
         self.__context = context
+        self.__endpoint = endpoint
+        self.__interval = interval
 
     def run(self):
 
-        while True:
+        while self.__context.is_active():
 
             threads = []
 
-            for code, product in self.__class__.__TARGETS.items():
+            for code, product in self.__targets.items():
                 t = Thread(target=self.fetch, args=[code, product])
                 t.setDaemon(True)
                 t.start()
@@ -39,40 +40,41 @@ class ZaifThread(Thread):
 
             [t.join() for t in threads]
 
-            sleep(self.__class__.__TARGET_TIME)
+            sleep(self.__interval)
 
     def fetch(self, code, product):
 
-        log = self.__context.get_logger(self.__class__.__SITE)
+        log = self.__context.get_logger(self.__site)
         ask = None
         bid = None
-        mid = None
         ltp = None
 
         try:
 
-            json = get(self.__class__.__TARGET_PATH + code).json()
+            json = get(self.__endpoint + code).json()
 
             ltp = json['last'] if 'last' in json else None
             ask = json['ask'] if 'ask' in json else None
             bid = json['bid'] if 'bid' in json else None
-            mid = (ask + bid) * 0.5 if (ask is not None and bid is not None) else None
 
             log.debug('Fetched : %s={ask=%s, bid=%s, ltp=%s}', code, ask, bid, ltp)
 
         except Exception as e:
 
-            log.debug('Failure %s : %s', type(e), e.args)
+            log.debug('Failure : %s - %s', type(e), e.args)
 
-        gauges = self.__context.get_ticker_gauges(self.__class__.__SITE, product)
+        gauges = self.__context.get_ticker_gauges(self.__site, product)
         gauges.update_bbo(code, ask, bid)
-        gauges.update_mid(code, mid)
         gauges.update_ltp(code, ltp)
 
 
-if __name__ == '__main__':
+def main():
     context = TickerContext(log_level=DEBUG)
     context.launch_server()
 
     target = ZaifThread(context)
     target.start()
+
+
+if __name__ == '__main__':
+    main()

@@ -10,28 +10,29 @@ from cryptotheus.ticker_context import ProductType, TickerContext
 
 class BitfinexThread(Thread):
     __SITE = 'bitfinex'
-    __TARGET_PATH = getenv(__SITE + '_addr', 'https://api.bitfinex.com/v1/pubticker/')
-    __TARGET_TIME = getenv(__SITE + '_time', 15)
-
+    __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api.bitfinex.com/v1/pubticker/')
+    __INTERVAL = getenv(__SITE + '_interval', 15)
     __TARGETS = {
         'btcusd': ProductType.USD_BTC,
         'bchbtc': ProductType.BTC_BCH,
         'ethbtc': ProductType.BTC_ETH,
     }
 
-    __context = None
-
-    def __init__(self, context):
+    def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL):
         super(BitfinexThread, self).__init__()
+        self.__site = self.__SITE
+        self.__targets = self.__TARGETS
         self.__context = context
+        self.__endpoint = endpoint
+        self.__interval = interval
 
     def run(self):
 
-        while True:
+        while self.__context.is_active():
 
             threads = []
 
-            for code, product in self.__class__.__TARGETS.items():
+            for code, product in self.__targets.items():
                 t = Thread(target=self.fetch, args=[code, product])
                 t.setDaemon(True)
                 t.start()
@@ -39,11 +40,11 @@ class BitfinexThread(Thread):
 
             [t.join() for t in threads]
 
-            sleep(self.__class__.__TARGET_TIME)
+            sleep(self.__interval)
 
     def fetch(self, code, product):
 
-        log = self.__context.get_logger(self.__class__.__SITE)
+        log = self.__context.get_logger(self.__site)
         ask = None
         bid = None
         mid = None
@@ -51,7 +52,7 @@ class BitfinexThread(Thread):
 
         try:
 
-            json = get(self.__class__.__TARGET_PATH + code).json()
+            json = get(self.__endpoint + code).json()
 
             ltp = json['last_price'] if 'last_price' in json else None
             ask = json['ask'] if 'ask' in json else None
@@ -62,17 +63,20 @@ class BitfinexThread(Thread):
 
         except Exception as e:
 
-            log.debug('Failure %s : %s', type(e), e.args)
+            log.debug('Failure : %s - %s', type(e), e.args)
 
-        gauges = self.__context.get_ticker_gauges(self.__class__.__SITE, product)
-        gauges.update_bbo(code, ask, bid)
-        gauges.update_mid(code, mid)
+        gauges = self.__context.get_ticker_gauges(self.__site, product)
+        gauges.update_bbo(code, ask, bid, mid)
         gauges.update_ltp(code, ltp)
 
 
-if __name__ == '__main__':
+def main():
     context = TickerContext(log_level=DEBUG)
     context.launch_server()
 
     target = BitfinexThread(context)
     target.start()
+
+
+if __name__ == '__main__':
+    main()
