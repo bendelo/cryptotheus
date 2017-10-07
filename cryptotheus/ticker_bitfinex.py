@@ -33,18 +33,19 @@ class BitfinexThread(Thread):
             threads = []
 
             for code, product in self.__targets.items():
-                t = Thread(target=self.fetch, args=[code, product])
-                t.setDaemon(True)
-                t.start()
-                threads.append(t)
+                threads.append(Thread(daemon=True, target=self.fetch, args=[code, product]))
 
-            [t.join() for t in threads]
+            for t in threads:
+                t.start()
+
+            for t in threads:
+                t.join()
 
             sleep(self.__interval)
 
     def fetch(self, code, product):
 
-        log = self.__context.get_logger(self.__site)
+        log = self.__context.get_logger(self)
         ask = None
         bid = None
         mid = None

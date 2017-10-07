@@ -28,7 +28,7 @@ class PoloniexThread(Thread):
 
     def run(self):
 
-        log = self.__context.get_logger(self.__site)
+        log = self.__context.get_logger(self)
 
         while self.__context.is_active():
 

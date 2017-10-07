@@ -100,6 +100,30 @@ class CryptotheusContext(object):
         self.__host = host
         self.__port = port
 
+    def get_logger(self, source):
+
+        name = source.__class__.__name__
+
+        logger = self.__loggers[name] if name in self.__loggers else None
+
+        if logger is None:
+            formatter = Formatter(fmt='[%(asctime)-15s][%(levelname)-5s][%(name)s] %(message)s')
+            handler = StreamHandler()
+            handler.setFormatter(formatter)
+            handler.setLevel(self.__level)
+            logger = getLogger(name)
+            logger.setLevel(handler.level)
+            logger.addHandler(handler)
+            self.__loggers[name] = logger
+
+        return logger
+
+    def launch_server(self):
+
+        self.get_logger(self).info('Starting server [%s:%s]', self.__host, self.__port)
+
+        start_http_server(self.__port, addr=self.__host)
+
     def is_active(self):
         return self.__active
 
@@ -118,25 +142,3 @@ class CryptotheusContext(object):
             site_gauges[product] = site_gauge
 
         return site_gauge
-
-    def get_logger(self, name):
-
-        logger = self.__loggers[name] if name in self.__loggers else None
-
-        if logger is None:
-            formatter = Formatter(fmt='[%(asctime)-15s][%(levelname)-5s][%(name)s] %(message)s')
-            handler = StreamHandler()
-            handler.setFormatter(formatter)
-            handler.setLevel(self.__level)
-            logger = getLogger(name)
-            logger.setLevel(handler.level)
-            logger.addHandler(handler)
-            self.__loggers[name] = logger
-
-        return logger
-
-    def launch_server(self):
-
-        self.get_logger(self.__class__.__name__).info('Starting server [%s:%s]', self.__host, self.__port)
-
-        start_http_server(self.__port, addr=self.__host)
