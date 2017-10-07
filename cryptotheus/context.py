@@ -12,6 +12,7 @@ class ProductType(Enum):
     BTC_BCH = 3
     BTC_ETH = 4
     JPY_USD = 5
+    JPY_EUR = 6
 
 
 class TickerGauges(object):
