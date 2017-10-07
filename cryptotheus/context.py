@@ -89,8 +89,8 @@ class CryptotheusContext(object):
     # Logger
     __loggers = {}
 
-    # Metrics (site -> product -> Gauge)
-    __sites = {}
+    # Ticker Metrics (site -> product -> tickers)
+    __tickers = {}
 
     # State
     __active = True
@@ -129,16 +129,16 @@ class CryptotheusContext(object):
 
     def get_ticker_gauges(self, site, product):
 
-        site_gauges = self.__sites[site] if site in self.__sites else None
+        products = self.__tickers[site] if site in self.__tickers else None
 
-        if site_gauges is None:
-            site_gauges = {}
-            self.__sites[site] = site_gauges
+        if products is None:
+            products = {}
+            self.__tickers[site] = products
 
-        site_gauge = site_gauges[product] if product in site_gauges else None
+        gauges = products[product] if product in products else None
 
-        if site_gauge is None:
-            site_gauge = TickerGauges(site, product)
-            site_gauges[product] = site_gauge
+        if gauges is None:
+            gauges = TickerGauges(site, product)
+            products[product] = gauges
 
-        return site_gauge
+        return gauges
