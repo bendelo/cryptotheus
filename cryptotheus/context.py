@@ -18,6 +18,7 @@ class ProductType(Enum):
 class TickerGauges(object):
     __LABEL_ASK = 'ask'
     __LABEL_BID = 'bid'
+    __VALUE_NIL = 0.0
 
     __LCK = Lock()
     __BBO = {}
@@ -45,25 +46,25 @@ class TickerGauges(object):
 
         return gauge
 
-    def update_bbo(self, code, ask, bid, mid=None):
+    def update_bbo(self, code, ask, bid, mid=None, nil=__VALUE_NIL):
         a = float(ask) if ask is not None else None
         b = float(bid) if bid is not None else None
         g = self.__get_gauge(TickerGauges.__BBO, 'ticker_bbo_', 'Best bid/offer price for ')
-        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_ASK)).set(a)
-        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_BID)).set(b)
+        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_ASK)).set(a if a is not None else nil)
+        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_BID)).set(b if b is not None else nil)
 
         m = (float(ask) + float(bid)) * 0.5 if mid is None and ask is not None and bid is not None else mid
         g = self.__get_gauge(TickerGauges.__MID, 'ticker_mid_', 'Mid price for ')
-        g.labels("%s:%s" % (self.__site, code)).set(m)
+        g.labels("%s:%s" % (self.__site, code)).set(m if m is not None else nil)
 
         self.__cached_ask[code] = a
         self.__cached_bid[code] = b
         self.__cached_mid[code] = m
 
-    def update_ltp(self, code, ltp):
+    def update_ltp(self, code, ltp, nil=__VALUE_NIL):
         p = float(ltp) if ltp is not None else None
         g = self.__get_gauge(TickerGauges.__LTP, 'ticker_ltp_', 'Last trade price for ')
-        g.labels("%s:%s" % (self.__site, code)).set(p)
+        g.labels("%s:%s" % (self.__site, code)).set(p if p is not None else nil)
 
         self.__cached_ltp[code] = p
 
