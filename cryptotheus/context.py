@@ -23,8 +23,10 @@ class TickerGauges(object):
     __MID = {}
     __LTP = {}
 
-    __site = None
-    __product = None
+    __cached_ask = {}
+    __cached_bid = {}
+    __cached_mid = {}
+    __cached_ltp = {}
 
     def __init__(self, site, product):
         self.__site = site
@@ -43,17 +45,38 @@ class TickerGauges(object):
         return gauge
 
     def update_bbo(self, code, ask, bid, mid=None):
+        a = float(ask) if ask is not None else None
+        b = float(bid) if bid is not None else None
         g = self.__get_gauge(TickerGauges.__BBO, 'ticker_bbo_', 'Best bid/offer price for ')
-        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_ASK)).set(float(ask) if ask is not None else None)
-        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_BID)).set(float(bid) if bid is not None else None)
+        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_ASK)).set(a)
+        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_BID)).set(b)
 
-        __mid = (float(ask) + float(bid)) * 0.5 if mid is None and ask is not None and bid is not None else mid
+        m = (float(ask) + float(bid)) * 0.5 if mid is None and ask is not None and bid is not None else mid
         g = self.__get_gauge(TickerGauges.__MID, 'ticker_mid_', 'Mid price for ')
-        g.labels("%s:%s" % (self.__site, code)).set(__mid)
+        g.labels("%s:%s" % (self.__site, code)).set(m)
+
+        self.__cached_ask[code] = a
+        self.__cached_bid[code] = b
+        self.__cached_mid[code] = m
 
     def update_ltp(self, code, ltp):
+        p = float(ltp) if ltp is not None else None
         g = self.__get_gauge(TickerGauges.__LTP, 'ticker_ltp_', 'Last trade price for ')
-        g.labels("%s:%s" % (self.__site, code)).set(float(ltp) if ltp is not None else None)
+        g.labels("%s:%s" % (self.__site, code)).set(p)
+
+        self.__cached_ltp[code] = p
+
+    def get_cached_ask(self, code):
+        return self.__cached_ask[code] if code in self.__cached_ask else None
+
+    def get_cached_bid(self, code):
+        return self.__cached_bid[code] if code in self.__cached_bid else None
+
+    def get_cached_mid(self, code):
+        return self.__cached_mid[code] if code in self.__cached_mid else None
+
+    def get_cached_ltp(self, code):
+        return self.__cached_ltp[code] if code in self.__cached_ltp else None
 
 
 class CryptotheusContext(object):
