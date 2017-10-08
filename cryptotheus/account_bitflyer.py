@@ -6,26 +6,33 @@ from time import sleep, time
 
 from requests import request
 
-from cryptotheus.context import AccountType, UnitType, CryptotheusContext
+from cryptotheus.context import AccountType, UnitType, ProductType, CryptotheusContext
 
 
 class BitflyerAccount(Thread):
-    __SITE = 'bitflyer'
-    __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api.bitflyer.jp')
-    __INTERVAL = getenv(__SITE + '_interval', 30)
-    __APIKEY = getenv(__SITE + '_apikey', None)
-    __SECRET = getenv(__SITE + '_secret', None)
-    __BALANCES = {
-        'JPY': UnitType.JPY,
-        'BTC': UnitType.BTC,
-        'ETH': UnitType.ETH,
-        'BCH': UnitType.BCH,
-    }
-
-    def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL, key=__APIKEY, secret=__SECRET):
+    def __init__(self, context,
+                 endpoint=getenv('bitflyer_endpoint', 'https://api.bitflyer.jp'),
+                 interval=getenv('bitflyer_interval', 30),
+                 key=getenv('bitflyer_apikey', None),
+                 secret=getenv('bitflyer_secret', None)
+                 ):
         super(BitflyerAccount, self).__init__()
-        self.__site = self.__SITE
-        self.__balances = self.__BALANCES
+        self.__site = 'bitflyer'
+        self.__balances = {
+            'JPY': UnitType.JPY,
+            'BTC': UnitType.BTC,
+            'ETH': UnitType.ETH,
+            'BCH': UnitType.BCH,
+        }
+        self.__collateral = {
+            'JPY': UnitType.JPY,
+            'BTC': UnitType.BTC,
+        }
+        self.__margins = {
+            'FX_BTC_JPY': UnitType.BTC,
+            'BTCJPY_MAT1WK': UnitType.BTC,
+            'BTCJPY_MAT2WK': UnitType.BTC,
+        }
         self.__log = context.get_logger(self)
         self.__context = context
         self.__endpoint = endpoint
@@ -39,6 +46,7 @@ class BitflyerAccount(Thread):
 
             threads = [
                 Thread(daemon=True, target=self._fetch_balance),
+                Thread(daemon=True, target=self._fetch_collateral),
             ]
 
             for t in threads:
@@ -101,6 +109,84 @@ class BitflyerAccount(Thread):
             g = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, unit)
             g.update_value('cash', ccy, value)
             self.__log.debug('Balance : %s = %s', ccy, value)
+
+            if unit == UnitType.BTC:
+                btc_ticker = self.__context.get_ticker_gauges(self.__site, ProductType.JPY_BTC)
+                btc_price = btc_ticker.get_cached_mid('BTC_JPY')
+
+                jpy = value * btc_price \
+                    if value is not None and btc_price is not None \
+                    else None
+
+                account = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, UnitType.JPY)
+                account.update_value('cash', ccy, jpy)
+
+            if unit == UnitType.ETH:
+                alt_ticker = self.__context.get_ticker_gauges(self.__site, ProductType.BTC_ETH)
+                alt_price = alt_ticker.get_cached_mid('ETH_BTC')
+                btc = value * alt_price if value is not None and alt_price is not None else None
+                account = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, UnitType.BTC)
+                account.update_value('cash', ccy, btc)
+
+                btc_ticker = self.__context.get_ticker_gauges(self.__site, ProductType.JPY_BTC)
+                btc_price = btc_ticker.get_cached_mid('BTC_JPY')
+                jpy = btc * btc_price if btc is not None and btc_price is not None else None
+                account = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, UnitType.JPY)
+                account.update_value('cash', ccy, jpy)
+
+            if unit == UnitType.BCH:
+                alt_ticker = self.__context.get_ticker_gauges(self.__site, ProductType.BTC_BCH)
+                alt_price = alt_ticker.get_cached_mid('BCH_BTC')
+                btc = value * alt_price if value is not None and alt_price is not None else None
+                account = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, UnitType.BTC)
+                account.update_value('cash', ccy, btc)
+
+                btc_ticker = self.__context.get_ticker_gauges(self.__site, ProductType.JPY_BTC)
+                btc_price = btc_ticker.get_cached_mid('BTC_JPY')
+                jpy = btc * btc_price if btc is not None and btc_price is not None else None
+                account = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, UnitType.JPY)
+                account.update_value('cash', ccy, jpy)
+
+    def _fetch_collateral(self):
+
+        json = None
+
+        try:
+
+            json = self._json_get('/v1/me/getcollateralaccounts')
+
+        except Exception as e:
+
+            self.__log.debug('Margin Failure : %s - %s', type(e), e.args)
+
+        for ccy, unit in self.__collateral.items():
+
+            value = None
+
+            for asset in json if json is not None else []:
+
+                if 'currency_code' not in asset:
+                    continue
+
+                if ccy != asset['currency_code']:
+                    continue
+
+                value = asset['amount'] if 'amount' in asset else None
+
+            g = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, unit)
+            g.update_value('margin', ccy, value)
+            self.__log.debug('Margin : %s = %s', ccy, value)
+
+            if unit == UnitType.BTC:
+                btc_ticker = self.__context.get_ticker_gauges(self.__site, ProductType.JPY_BTC)
+                btc_price = btc_ticker.get_cached_mid('BTC_JPY')
+
+                jpy = value * btc_price \
+                    if value is not None and btc_price is not None \
+                    else None
+
+                account = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, UnitType.JPY)
+                account.update_value('margin', ccy, jpy)
 
 
 def main():

@@ -9,7 +9,7 @@ from cryptotheus.context import ProductType, CryptotheusContext
 
 class BitflyerTicker(Thread):
     def __init__(self, context,
-                 endpoint=getenv('bitflyer_endpoint', 'https://api.bitflyer.jp/v1/ticker?product_code='),
+                 endpoint=getenv('bitflyer_endpoint', 'https://api.bitflyer.jp'),
                  interval=getenv('bitflyer_interval', 15)
                  ):
         super(BitflyerTicker, self).__init__()
@@ -52,7 +52,7 @@ class BitflyerTicker(Thread):
 
         try:
 
-            json = get(self.__endpoint + code).json()
+            json = get(self.__endpoint + '/v1/ticker?product_code=' + code).json()
 
             ltp = json['ltp'] if 'ltp' in json else None
             ask = json['best_ask'] if 'best_ask' in json else None
