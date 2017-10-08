@@ -9,16 +9,28 @@ from cryptotheus.context import ProductType, CryptotheusContext
 
 
 class OandaTicker(Thread):
+    @staticmethod
+    def get_site():
+        return 'oanda'
+
+    @staticmethod
+    def get_code(product):
+        if product == ProductType.JPY_USD:
+            return 'USD_JPY'
+        if product == ProductType.JPY_EUR:
+            return 'EUR_JPY'
+        return None
+
     def __init__(self, context,
                  endpoint=getenv('oanda_endpoint', 'https://api-fxtrade.oanda.com/v1/prices?instruments='),
                  interval=getenv('oanda_interval', 15),
                  token=getenv('oanda_token', None)
                  ):
         super(OandaTicker, self).__init__()
-        self.__site = 'oanda'
+        self.__site = OandaTicker.get_site()
         self.__targets = {
-            'USD_JPY': ProductType.JPY_USD,
-            'EUR_JPY': ProductType.JPY_EUR,
+            OandaTicker.get_code(ProductType.JPY_USD): ProductType.JPY_USD,
+            OandaTicker.get_code(ProductType.JPY_EUR): ProductType.JPY_EUR,
         }
         self.__context = context
         self.__endpoint = endpoint
