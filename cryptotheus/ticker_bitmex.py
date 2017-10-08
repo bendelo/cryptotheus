@@ -1,4 +1,3 @@
-from logging import DEBUG
 from os import getenv
 from threading import Thread
 from time import sleep
@@ -9,17 +8,15 @@ from cryptotheus.context import ProductType, CryptotheusContext
 
 
 class BitmexTicker(Thread):
-    __SITE = 'bitmex'
-    __ENDPOINT = getenv(__SITE + '_endpoint', 'https://www.bitmex.com/api/v1/quote?count=1&reverse=true&symbol=')
-    __INTERVAL = getenv(__SITE + '_interval', 15)
-    __TARGETS = {
-        'XBTUSD': ProductType.USD_BTC,
-    }
-
-    def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL):
+    def __init__(self, context,
+                 endpoint=getenv('bitmex_endpoint', 'https://www.bitmex.com/api/v1/quote?count=1&reverse=true&symbol='),
+                 interval=getenv('bitmex_interval', 15)
+                 ):
         super(BitmexTicker, self).__init__()
-        self.__site = self.__SITE
-        self.__targets = self.__TARGETS
+        self.__site = 'bitmex'
+        self.__targets = {
+            'XBTUSD': ProductType.USD_BTC,
+        }
         self.__context = context
         self.__endpoint = endpoint
         self.__interval = interval
@@ -74,7 +71,7 @@ class BitmexTicker(Thread):
 
 
 def main():
-    context = CryptotheusContext(log_level=DEBUG)
+    context = CryptotheusContext(debug=True)
     context.launch_server()
 
     target = BitmexTicker(context)

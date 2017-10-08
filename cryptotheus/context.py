@@ -1,5 +1,5 @@
 from enum import Enum
-from logging import Formatter, StreamHandler, INFO, getLogger
+from logging import Formatter, StreamHandler, DEBUG, INFO, getLogger
 from os import getenv
 from threading import Lock
 
@@ -28,10 +28,12 @@ class UnitType(Enum):
 
 
 class TickerGauges(object):
+    # Constants
     __LABEL_ASK = 'ask'
     __LABEL_BID = 'bid'
     __VALUE_NIL = 0.0
 
+    # Static Variables
     __LCK = Lock()
     __BBO = {}
     __MID = {}
@@ -130,10 +132,6 @@ class AccountGauges(object):
 
 
 class CryptotheusContext(object):
-    # Metrics Server
-    __HOST = getenv('metric_host', 'localhost')
-    __PORT = getenv('metric_port', 10001)
-
     # Logger
     __loggers = {}
 
@@ -146,8 +144,12 @@ class CryptotheusContext(object):
     # State
     __active = True
 
-    def __init__(self, log_level=INFO, host=__HOST, port=__PORT):
-        self.__level = log_level
+    def __init__(self,
+                 debug=False,
+                 host=getenv('metric_host', 'localhost'),
+                 port=getenv('metric_port', 10001)
+                 ):
+        self.__level = DEBUG if debug else INFO
         self.__host = host
         self.__port = port
 

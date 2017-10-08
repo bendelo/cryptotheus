@@ -1,4 +1,3 @@
-from logging import DEBUG
 from os import getenv
 from threading import Thread
 from time import sleep
@@ -9,19 +8,17 @@ from cryptotheus.context import ProductType, CryptotheusContext
 
 
 class ZaifTicker(Thread):
-    __SITE = 'zaif'
-    __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api.zaif.jp/api/1/ticker/')
-    __INTERVAL = getenv(__SITE + '_interval', 15)
-    __TARGETS = {
-        'btc_jpy': ProductType.JPY_BTC,
-        'bch_btc': ProductType.BTC_BCH,
-        'eth_btc': ProductType.BTC_ETH,
-    }
-
-    def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL):
+    def __init__(self, context,
+                 endpoint=getenv('zaif_endpoint', 'https://api.zaif.jp/api/1/ticker/'),
+                 interval=getenv('zaif_interval', 15)
+                 ):
         super(ZaifTicker, self).__init__()
-        self.__site = self.__SITE
-        self.__targets = self.__TARGETS
+        self.__site = 'zaif'
+        self.__targets = {
+            'btc_jpy': ProductType.JPY_BTC,
+            'bch_btc': ProductType.BTC_BCH,
+            'eth_btc': ProductType.BTC_ETH,
+        }
         self.__context = context
         self.__endpoint = endpoint
         self.__interval = interval
@@ -70,7 +67,7 @@ class ZaifTicker(Thread):
 
 
 def main():
-    context = CryptotheusContext(log_level=DEBUG)
+    context = CryptotheusContext(debug=True)
     context.launch_server()
 
     target = ZaifTicker(context)

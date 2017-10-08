@@ -1,4 +1,3 @@
-from logging import DEBUG
 from os import getenv
 from threading import Thread
 from time import sleep
@@ -9,19 +8,17 @@ from cryptotheus.context import ProductType, CryptotheusContext
 
 
 class BitfinexTicker(Thread):
-    __SITE = 'bitfinex'
-    __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api.bitfinex.com/v1/pubticker/')
-    __INTERVAL = getenv(__SITE + '_interval', 15)
-    __TARGETS = {
-        'btcusd': ProductType.USD_BTC,
-        'bchbtc': ProductType.BTC_BCH,
-        'ethbtc': ProductType.BTC_ETH,
-    }
-
-    def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL):
+    def __init__(self, context,
+                 endpoint=getenv('bitfinex_endpoint', 'https://api.bitfinex.com/v1/pubticker/'),
+                 interval=getenv('bitfinex_interval', 15)
+                 ):
         super(BitfinexTicker, self).__init__()
-        self.__site = self.__SITE
-        self.__targets = self.__TARGETS
+        self.__site = 'bitfinex'
+        self.__targets = {
+            'btcusd': ProductType.USD_BTC,
+            'bchbtc': ProductType.BTC_BCH,
+            'ethbtc': ProductType.BTC_ETH,
+        }
         self.__context = context
         self.__endpoint = endpoint
         self.__interval = interval
@@ -72,7 +69,7 @@ class BitfinexTicker(Thread):
 
 
 def main():
-    context = CryptotheusContext(log_level=DEBUG)
+    context = CryptotheusContext(debug=True)
     context.launch_server()
 
     target = BitfinexTicker(context)

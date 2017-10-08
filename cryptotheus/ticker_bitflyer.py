@@ -1,4 +1,3 @@
-from logging import DEBUG
 from os import getenv
 from threading import Thread
 from time import sleep
@@ -9,22 +8,20 @@ from cryptotheus.context import ProductType, CryptotheusContext
 
 
 class BitflyerTicker(Thread):
-    __SITE = 'bitflyer'
-    __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api.bitflyer.jp/v1/ticker?product_code=')
-    __INTERVAL = getenv(__SITE + '_interval', 15)
-    __TARGETS = {
-        'BTC_JPY': ProductType.JPY_BTC,
-        'FX_BTC_JPY': ProductType.JPY_BTC,
-        'BTCJPY_MAT1WK': ProductType.JPY_BTC,
-        'BTCJPY_MAT2WK': ProductType.JPY_BTC,
-        'BCH_BTC': ProductType.BTC_BCH,
-        'ETH_BTC': ProductType.BTC_ETH,
-    }
-
-    def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL):
+    def __init__(self, context,
+                 endpoint=getenv('bitflyer_endpoint', 'https://api.bitflyer.jp/v1/ticker?product_code='),
+                 interval=getenv('bitflyer_interval', 15)
+                 ):
         super(BitflyerTicker, self).__init__()
-        self.__site = self.__SITE
-        self.__targets = self.__TARGETS
+        self.__site = 'bitflyer'
+        self.__targets = {
+            'BTC_JPY': ProductType.JPY_BTC,
+            'FX_BTC_JPY': ProductType.JPY_BTC,
+            'BTCJPY_MAT1WK': ProductType.JPY_BTC,
+            'BTCJPY_MAT2WK': ProductType.JPY_BTC,
+            'BCH_BTC': ProductType.BTC_BCH,
+            'ETH_BTC': ProductType.BTC_ETH,
+        }
         self.__context = context
         self.__endpoint = endpoint
         self.__interval = interval
@@ -73,7 +70,7 @@ class BitflyerTicker(Thread):
 
 
 def main():
-    context = CryptotheusContext(log_level=DEBUG)
+    context = CryptotheusContext(debug=True)
     context.launch_server()
 
     target = BitflyerTicker(context)

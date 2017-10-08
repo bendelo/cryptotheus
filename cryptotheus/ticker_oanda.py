@@ -1,4 +1,3 @@
-from logging import DEBUG
 from os import getenv
 from threading import Thread
 from time import sleep
@@ -10,19 +9,17 @@ from cryptotheus.context import ProductType, CryptotheusContext
 
 
 class OandaTicker(Thread):
-    __SITE = 'oanda'
-    __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api-fxtrade.oanda.com/v1/prices?instruments=')
-    __INTERVAL = getenv(__SITE + '_interval', 15)
-    __TOKEN = getenv(__SITE + '_token', None)
-    __TARGETS = {
-        'USD_JPY': ProductType.JPY_USD,
-        'EUR_JPY': ProductType.JPY_EUR,
-    }
-
-    def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL, token=__TOKEN):
+    def __init__(self, context,
+                 endpoint=getenv('oanda_endpoint', 'https://api-fxtrade.oanda.com/v1/prices?instruments='),
+                 interval=getenv('oanda_interval', 15),
+                 token=getenv('oanda_token', None)
+                 ):
         super(OandaTicker, self).__init__()
-        self.__site = self.__SITE
-        self.__targets = self.__TARGETS
+        self.__site = 'oanda'
+        self.__targets = {
+            'USD_JPY': ProductType.JPY_USD,
+            'EUR_JPY': ProductType.JPY_EUR,
+        }
         self.__context = context
         self.__endpoint = endpoint
         self.__interval = interval
@@ -34,7 +31,7 @@ class OandaTicker(Thread):
 
         while self.__context.is_active():
 
-            json = []
+            json = {}
 
             if self.__token is not None:
 
@@ -82,7 +79,7 @@ class OandaTicker(Thread):
 
 
 def main():
-    context = CryptotheusContext(log_level=DEBUG)
+    context = CryptotheusContext(debug=True)
     context.launch_server()
 
     target = OandaTicker(context)

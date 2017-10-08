@@ -1,4 +1,3 @@
-from logging import DEBUG
 from os import getenv
 from threading import Thread
 from time import sleep
@@ -9,17 +8,15 @@ from cryptotheus.context import ProductType, CryptotheusContext
 
 
 class CoincheckTicker(Thread):
-    __SITE = 'coincheck'
-    __ENDPOINT = getenv(__SITE + '_endpoint', 'https://coincheck.com/api/ticker')
-    __INTERVAL = getenv(__SITE + '_interval', 15)
-    __TARGETS = {
-        'btc_jpy': ProductType.JPY_BTC,
-    }
-
-    def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL):
+    def __init__(self, context,
+                 endpoint=getenv('coincheck_endpoint', 'https://coincheck.com/api/ticker'),
+                 interval=getenv('coincheck_interval', 15)
+                 ):
         super(CoincheckTicker, self).__init__()
-        self.__site = self.__SITE
-        self.__targets = self.__TARGETS
+        self.__site = 'coincheck'
+        self.__targets = {
+            'btc_jpy': ProductType.JPY_BTC,
+        }
         self.__context = context
         self.__endpoint = endpoint
         self.__interval = interval
@@ -69,7 +66,7 @@ class CoincheckTicker(Thread):
 
 
 def main():
-    context = CryptotheusContext(log_level=DEBUG)
+    context = CryptotheusContext(debug=True)
     context.launch_server()
 
     target = CoincheckTicker(context)
