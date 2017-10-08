@@ -15,6 +15,18 @@ class ProductType(Enum):
     JPY_EUR = 6
 
 
+class AccountType(Enum):
+    BALANCE = 1
+
+
+class UnitType(Enum):
+    JPY = 1
+    USD = 2
+    BTC = 3
+    ETH = 4
+    BCH = 5
+
+
 class TickerGauges(object):
     __LABEL_ASK = 'ask'
     __LABEL_BID = 'bid'
@@ -81,6 +93,42 @@ class TickerGauges(object):
         return self.__cached_ltp[code] if code in self.__cached_ltp else None
 
 
+class AccountGauges(object):
+    __NIL = 0.0
+    __LCK = Lock()
+    __MAP = {}
+
+    def __init__(self, site, account, unit):
+        self.__site = site
+        self.__account = account
+        self.__unit = unit
+
+    def __get_gauge(self):
+
+        with AccountGauges.__LCK:
+
+            units = AccountGauges.__MAP[self.__account] if self.__account in AccountGauges.__MAP else None
+
+            if units is None:
+                units = {}
+                AccountGauges.__MAP[self.__account] = units
+
+            gauge = units[self.__unit] if self.__unit in units else None
+
+            if gauge is None:
+                s = 'account_%s_%s' % (self.__account.name.lower(), self.__unit.name.lower())
+                d = 'Account %s in %s' % (self.__account.name.lower(), self.__unit.name)
+                gauge = Gauge(s, d, ['site', 'type', 'name'])
+                units[self.__unit] = gauge
+
+        return gauge
+
+    def update_value(self, account_type, name, value):
+        v = value if value is not None else self.__NIL
+        gauge = self.__get_gauge()
+        gauge.labels(self.__site, account_type, name).set(v)
+
+
 class CryptotheusContext(object):
     # Metrics Server
     __HOST = getenv('metric_host', 'localhost')
@@ -89,8 +137,11 @@ class CryptotheusContext(object):
     # Logger
     __loggers = {}
 
-    # Ticker Metrics (site -> product -> tickers)
+    # Ticker Metrics
     __tickers = {}
+
+    # Account Metrics
+    __accounts = {}
 
     # State
     __active = True
@@ -140,5 +191,27 @@ class CryptotheusContext(object):
         if gauges is None:
             gauges = TickerGauges(site, product)
             products[product] = gauges
+
+        return gauges
+
+    def get_account_gauges(self, site, account, unit):
+
+        accounts = self.__accounts[site] if site in self.__accounts else None
+
+        if accounts is None:
+            accounts = {}
+            self.__accounts[site] = accounts
+
+        units = accounts[account] if account in accounts else None
+
+        if units is None:
+            units = {}
+            accounts[account] = units
+
+        gauges = units[unit] if unit in units else None
+
+        if gauges is None:
+            gauges = AccountGauges(site, account, unit)
+            units[unit] = gauges
 
         return gauges
