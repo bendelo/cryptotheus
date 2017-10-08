@@ -10,12 +10,12 @@ from cryptotheus import ticker_zaif
 
 Context = context.CryptotheusContext
 
-BitfinexTicker = ticker_bitfinex.BitfinexThread
-BitflyerTicker = ticker_bitflyer.BitflyerThread
-BitmexTicker = ticker_bitmex.BitmexThread
-CoincheckTicker = ticker_coincheck.CoincheckThread
-OandaTicker = ticker_oanda.OandaThread
-PoloniexTicker = ticker_poloniex.PoloniexThread
-ZaifTicker = ticker_zaif.ZaifThread
+BitfinexTicker = ticker_bitfinex.BitfinexTicker
+BitflyerTicker = ticker_bitflyer.BitflyerTicker
+BitmexTicker = ticker_bitmex.BitmexTicker
+CoincheckTicker = ticker_coincheck.CoincheckTicker
+OandaTicker = ticker_oanda.OandaTicker
+PoloniexTicker = ticker_poloniex.PoloniexTicker
+ZaifTicker = ticker_zaif.ZaifTicker
 
 BitflyerAccount = account_bitflyer.BitflyerAccount

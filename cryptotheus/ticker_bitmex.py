@@ -8,7 +8,7 @@ from requests import get
 from cryptotheus.context import ProductType, CryptotheusContext
 
 
-class BitmexThread(Thread):
+class BitmexTicker(Thread):
     __SITE = 'bitmex'
     __ENDPOINT = getenv(__SITE + '_endpoint', 'https://www.bitmex.com/api/v1/quote?count=1&reverse=true&symbol=')
     __INTERVAL = getenv(__SITE + '_interval', 15)
@@ -17,7 +17,7 @@ class BitmexThread(Thread):
     }
 
     def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL):
-        super(BitmexThread, self).__init__()
+        super(BitmexTicker, self).__init__()
         self.__site = self.__SITE
         self.__targets = self.__TARGETS
         self.__context = context
@@ -63,11 +63,11 @@ class BitmexThread(Thread):
                 bid = json['bidPrice'] if 'bidPrice' in json else None
                 break
 
-            log.debug('Fetched : %s={ask=%s, bid=%s}', code, ask, bid)
+            log.debug('%s : ask=%s bid=%s', code, ask, bid)
 
         except Exception as e:
 
-            log.debug('Failure : %s - %s', type(e), e.args)
+            log.debug('%s : %s', type(e), e.args)
 
         gauges = self.__context.get_ticker_gauges(self.__site, product)
         gauges.update_bbo(code, ask, bid)
@@ -77,7 +77,7 @@ def main():
     context = CryptotheusContext(log_level=DEBUG)
     context.launch_server()
 
-    target = BitmexThread(context)
+    target = BitmexTicker(context)
     target.start()
 
 

@@ -8,7 +8,7 @@ from requests import get
 from cryptotheus.context import ProductType, CryptotheusContext
 
 
-class BitfinexThread(Thread):
+class BitfinexTicker(Thread):
     __SITE = 'bitfinex'
     __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api.bitfinex.com/v1/pubticker/')
     __INTERVAL = getenv(__SITE + '_interval', 15)
@@ -19,7 +19,7 @@ class BitfinexThread(Thread):
     }
 
     def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL):
-        super(BitfinexThread, self).__init__()
+        super(BitfinexTicker, self).__init__()
         self.__site = self.__SITE
         self.__targets = self.__TARGETS
         self.__context = context
@@ -60,11 +60,11 @@ class BitfinexThread(Thread):
             bid = json['bid'] if 'bid' in json else None
             mid = json['mid'] if 'mid' in json else None
 
-            log.debug('Fetched : %s={ask=%s, bid=%s, ltp=%s}', code, ask, bid, ltp)
+            log.debug('%s : ask=%s bid=%s ltp=%s', code, ask, bid, ltp)
 
         except Exception as e:
 
-            log.debug('Failure : %s - %s', type(e), e.args)
+            log.debug('%s : %s', type(e), e.args)
 
         gauges = self.__context.get_ticker_gauges(self.__site, product)
         gauges.update_bbo(code, ask, bid, mid)
@@ -75,7 +75,7 @@ def main():
     context = CryptotheusContext(log_level=DEBUG)
     context.launch_server()
 
-    target = BitfinexThread(context)
+    target = BitfinexTicker(context)
     target.start()
 
 

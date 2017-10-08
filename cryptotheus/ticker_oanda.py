@@ -9,7 +9,7 @@ from requests import request
 from cryptotheus.context import ProductType, CryptotheusContext
 
 
-class OandaThread(Thread):
+class OandaTicker(Thread):
     __SITE = 'oanda'
     __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api-fxtrade.oanda.com/v1/prices?instruments=')
     __INTERVAL = getenv(__SITE + '_interval', 15)
@@ -20,7 +20,7 @@ class OandaThread(Thread):
     }
 
     def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL, token=__TOKEN):
-        super(OandaThread, self).__init__()
+        super(OandaTicker, self).__init__()
         self.__site = self.__SITE
         self.__targets = self.__TARGETS
         self.__context = context
@@ -50,7 +50,7 @@ class OandaThread(Thread):
 
             except Exception as e:
 
-                log.debug('Failure : %s - %s', type(e), e.args)
+                log.debug('%s : %s', type(e), e.args)
 
             for code, product in self.__targets.items():
 
@@ -74,7 +74,7 @@ class OandaThread(Thread):
 
                 gauges = self.__context.get_ticker_gauges(self.__site, product)
                 gauges.update_bbo(code, ask, bid)
-                log.debug('Fetched : %s={ask=%s, bid=%s}', code, ask, bid)
+                log.debug('%s : ask=%s bid=%s', code, ask, bid)
 
             sleep(self.__interval)
 
@@ -83,7 +83,7 @@ def main():
     context = CryptotheusContext(log_level=DEBUG)
     context.launch_server()
 
-    target = OandaThread(context)
+    target = OandaTicker(context)
     target.start()
 
 

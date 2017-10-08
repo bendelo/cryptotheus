@@ -8,7 +8,7 @@ from requests import get
 from cryptotheus.context import ProductType, CryptotheusContext
 
 
-class BitflyerThread(Thread):
+class BitflyerTicker(Thread):
     __SITE = 'bitflyer'
     __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api.bitflyer.jp/v1/ticker?product_code=')
     __INTERVAL = getenv(__SITE + '_interval', 15)
@@ -22,7 +22,7 @@ class BitflyerThread(Thread):
     }
 
     def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL):
-        super(BitflyerThread, self).__init__()
+        super(BitflyerTicker, self).__init__()
         self.__site = self.__SITE
         self.__targets = self.__TARGETS
         self.__context = context
@@ -61,11 +61,11 @@ class BitflyerThread(Thread):
             ask = json['best_ask'] if 'best_ask' in json else None
             bid = json['best_bid'] if 'best_bid' in json else None
 
-            log.debug('Fetched : %s={ask=%s, bid=%s, ltp=%s}', code, ask, bid, ltp)
+            log.debug('%s : ask=%s bid=%s ltp=%s', code, ask, bid, ltp)
 
         except Exception as e:
 
-            log.debug('Failure : %s - %s', type(e), e.args)
+            log.debug('%s : %s', type(e), e.args)
 
         gauges = self.__context.get_ticker_gauges(self.__site, product)
         gauges.update_bbo(code, ask, bid)
@@ -76,7 +76,7 @@ def main():
     context = CryptotheusContext(log_level=DEBUG)
     context.launch_server()
 
-    target = BitflyerThread(context)
+    target = BitflyerTicker(context)
     target.start()
 
 

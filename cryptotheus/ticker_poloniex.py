@@ -8,7 +8,7 @@ from requests import get
 from cryptotheus.context import ProductType, CryptotheusContext
 
 
-class PoloniexThread(Thread):
+class PoloniexTicker(Thread):
     __SITE = 'poloniex'
     __ENDPOINT = getenv(__SITE + '_endpoint', 'https://poloniex.com/public?command=returnTicker')
     __INTERVAL = getenv(__SITE + '_interval', 15)
@@ -19,7 +19,7 @@ class PoloniexThread(Thread):
     }
 
     def __init__(self, context, endpoint=__ENDPOINT, interval=__INTERVAL):
-        super(PoloniexThread, self).__init__()
+        super(PoloniexTicker, self).__init__()
         self.__site = self.__SITE
         self.__targets = self.__TARGETS
         self.__context = context
@@ -32,32 +32,29 @@ class PoloniexThread(Thread):
 
         while self.__context.is_active():
 
+            tickers = {}
+
             try:
 
                 # Single request contains all products
                 tickers = get(self.__endpoint).json()
 
-                for code, product in self.__targets.items():
-                    json = tickers[code] if code in tickers else None
-
-                    ltp = json['last'] if 'last' in json else None
-                    ask = json['lowestAsk'] if 'lowestAsk' in json else None
-                    bid = json['highestBid'] if 'highestBid' in json else None
-
-                    gauges = self.__context.get_ticker_gauges(self.__site, product)
-                    gauges.update_bbo(code, ask, bid)
-                    gauges.update_ltp(code, ltp)
-
-                    log.debug('Fetched : %s={ask=%s, bid=%s, ltp=%s}', code, ask, bid, ltp)
-
             except Exception as e:
 
-                log.debug('Failure : %s - %s', type(e), e.args)
+                log.debug('%s : %s', type(e), e.args)
 
-                for code, product in self.__targets.items():
-                    gauges = self.__context.get_ticker_gauges(self.__site, product)
-                    gauges.update_bbo(code, None, None)
-                    gauges.update_ltp(code, None)
+            for code, product in self.__targets.items():
+                json = tickers[code] if code in tickers else {}
+
+                ltp = json['last'] if 'last' in json else None
+                ask = json['lowestAsk'] if 'lowestAsk' in json else None
+                bid = json['highestBid'] if 'highestBid' in json else None
+
+                gauges = self.__context.get_ticker_gauges(self.__site, product)
+                gauges.update_bbo(code, ask, bid)
+                gauges.update_ltp(code, ltp)
+
+                log.debug('%s : ask=%s bid=%s ltp=%s', code, ask, bid, ltp)
 
             sleep(self.__interval)
 
@@ -66,7 +63,7 @@ def main():
     context = CryptotheusContext(log_level=DEBUG)
     context.launch_server()
 
-    target = PoloniexThread(context)
+    target = PoloniexTicker(context)
     target.start()
 
 
