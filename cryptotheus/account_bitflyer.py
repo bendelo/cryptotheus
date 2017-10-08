@@ -179,7 +179,7 @@ class BitflyerAccount(Thread):
 
             g = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, unit)
             g.update_value(self.__LABEL_MARGIN, ccy, value)
-            self.__log.debug('Margin : %s = %s', ccy, value)
+            self.__log.debug('Collateral : %s = %s', ccy, value)
 
             if unit == UnitType.BTC:
                 btc_ticker = self.__context.get_ticker_gauges(self.__site, ProductType.JPY_BTC)
@@ -222,6 +222,8 @@ class BitflyerAccount(Thread):
 
                 quantity += (position['size'] * (1 if position['side'] == 'BUY' else -1))
                 unrealized += position['pnl']
+
+            self.__log.debug('Margin : %s - quantity=%s unrealized=%s', code, quantity, unrealized)
 
             jpy = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, unit)
             jpy.update_value(self.__LABEL_MARGIN, code, quantity)
