@@ -14,8 +14,8 @@ class BitflyerAccount(Thread):
     __SITE = 'bitflyer'
     __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api.bitflyer.jp')
     __INTERVAL = getenv(__SITE + '_interval', 30)
-    __APIKEY = getenv(__SITE + '_apikey', '')
-    __SECRET = getenv(__SITE + '_secret', '')
+    __APIKEY = getenv(__SITE + '_apikey', None)
+    __SECRET = getenv(__SITE + '_secret', None)
     __BALANCES = {
         'JPY': UnitType.JPY,
         'BTC': UnitType.BTC,
@@ -50,7 +50,13 @@ class BitflyerAccount(Thread):
 
             sleep(self.__interval)
 
-    def _execute_get(self, path, method='GET', body=''):
+    def _json_get(self, path, method='GET', body=''):
+
+        if self.__key is None:
+            return None
+
+        if self.__secret is None:
+            return None
 
         timestamp = str(int(time()))
 
@@ -65,15 +71,15 @@ class BitflyerAccount(Thread):
             "Content-Type": "application/json"
         }
 
-        return request('GET', self.__endpoint + path, headers=headers)
+        return request('GET', self.__endpoint + path, headers=headers).json()
 
     def _fetch_balance(self):
 
-        json = []
+        json = None
 
         try:
 
-            json = self._execute_get('/v1/me/getbalance').json()
+            json = self._json_get('/v1/me/getbalance')
 
         except Exception as e:
 
@@ -83,7 +89,7 @@ class BitflyerAccount(Thread):
 
             value = None
 
-            for asset in json:
+            for asset in json if json is not None else []:
 
                 if 'currency_code' not in asset:
                     continue

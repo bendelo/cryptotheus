@@ -13,7 +13,7 @@ class OandaTicker(Thread):
     __SITE = 'oanda'
     __ENDPOINT = getenv(__SITE + '_endpoint', 'https://api-fxtrade.oanda.com/v1/prices?instruments=')
     __INTERVAL = getenv(__SITE + '_interval', 15)
-    __TOKEN = getenv(__SITE + '_token', '')
+    __TOKEN = getenv(__SITE + '_token', None)
     __TARGETS = {
         'USD_JPY': ProductType.JPY_USD,
         'EUR_JPY': ProductType.JPY_EUR,
@@ -36,21 +36,23 @@ class OandaTicker(Thread):
 
             json = []
 
-            try:
+            if self.__token is not None:
 
-                # Single request can contain multiple products.
-                products = parse.quote(','.join(self.__targets.keys()))
+                try:
 
-                headers = {
-                    "Authorization": "Bearer " + self.__token
-                }
+                    # Single request can contain multiple products.
+                    products = parse.quote(','.join(self.__targets.keys()))
 
-                # {'prices': [{p1}, {p2}, ...]
-                json = request('GET', self.__endpoint + products, headers=headers).json()
+                    headers = {
+                        "Authorization": "Bearer " + self.__token
+                    }
 
-            except Exception as e:
+                    # {'prices': [{p1}, {p2}, ...]
+                    json = request('GET', self.__endpoint + products, headers=headers).json()
 
-                log.debug('%s : %s', type(e), e.args)
+                except Exception as e:
+
+                    log.debug('%s : %s', type(e), e.args)
 
             for code, product in self.__targets.items():
 
