@@ -1,6 +1,5 @@
 from hashlib import sha256
 from hmac import new
-from logging import DEBUG
 from os import getenv
 from threading import Thread
 from time import sleep, time
@@ -105,7 +104,7 @@ class BitflyerAccount(Thread):
 
 
 def main():
-    context = CryptotheusContext(log_level=DEBUG)
+    context = CryptotheusContext(debug=True)
     context.launch_server()
 
     target = BitflyerAccount(context)
