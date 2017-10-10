@@ -29,10 +29,6 @@ class QuoineTicker(Thread):
 
         while self.__context.is_active():
 
-            ask = None
-            bid = None
-            ltp = None
-
             products = []
 
             try:
@@ -45,15 +41,17 @@ class QuoineTicker(Thread):
 
             for code, product in self.__targets.items():
 
+                ask = None
+                bid = None
+                ltp = None
+
                 for json in products if products is not None else []:
 
-                    if 'currency_pair_code' not in json or code != json['currency_pair_code']:
-                        continue
-
-                    ask = json['market_ask'] if 'market_ask' in json else None
-                    bid = json['market_bid'] if 'market_bid' in json else None
-                    ltp = json['last_traded_price'] if 'last_traded_price' in json else None
-                    break
+                    if 'currency_pair_code' in json and code == json['currency_pair_code']:
+                        ask = json['market_ask'] if 'market_ask' in json else None
+                        bid = json['market_bid'] if 'market_bid' in json else None
+                        ltp = json['last_traded_price'] if 'last_traded_price' in json else None
+                        break
 
                 gauges = self.__context.get_ticker_gauges(self.__site, product)
                 gauges.update_bbo(code, ask, bid)
