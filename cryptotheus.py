@@ -13,6 +13,7 @@ def main():
     cryptotheus.CoincheckTicker(context).start()
     cryptotheus.OandaTicker(context).start()
     cryptotheus.PoloniexTicker(context).start()
+    cryptotheus.QuoineTicker(context).start()
     cryptotheus.ZaifTicker(context).start()
 
     cryptotheus.BitflyerAccount(context).start()

@@ -6,6 +6,7 @@ from cryptotheus import ticker_bitmex
 from cryptotheus import ticker_coincheck
 from cryptotheus import ticker_oanda
 from cryptotheus import ticker_poloniex
+from cryptotheus import ticker_quoine
 from cryptotheus import ticker_zaif
 
 Context = context.CryptotheusContext
@@ -16,6 +17,7 @@ BitmexTicker = ticker_bitmex.BitmexTicker
 CoincheckTicker = ticker_coincheck.CoincheckTicker
 OandaTicker = ticker_oanda.OandaTicker
 PoloniexTicker = ticker_poloniex.PoloniexTicker
+QuoineTicker = ticker_quoine.QuoineTicker
 ZaifTicker = ticker_zaif.ZaifTicker
 
 BitflyerAccount = account_bitflyer.BitflyerAccount
