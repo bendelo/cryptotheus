@@ -61,8 +61,8 @@ class TickerGauges(object):
         return gauge
 
     def update_bbo(self, code, ask, bid, mid=None, nil=__VALUE_NIL):
-        a = float(ask) if ask is not None else None
-        b = float(bid) if bid is not None else None
+        a = float(ask) if ask is not None and float(ask) != 0 else None
+        b = float(bid) if bid is not None and float(bid) != 0 else None
         g = self.__get_gauge(TickerGauges.__BBO, 'ticker_bbo_', 'Best bid/offer price for ')
         g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_ASK)).set(a if a is not None else nil)
         g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_BID)).set(b if b is not None else nil)
