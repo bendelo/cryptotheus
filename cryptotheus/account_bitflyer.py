@@ -317,6 +317,8 @@ class BitflyerAccount(Thread):
                 notional = interval_notional[interval] if interval in interval_notional else None
                 ccy = self.__context.get_account_gauges(self.__site, AccountType.VOLUME, unit)
                 ccy.update_value(interval, code, notional)
+                jpy = self.__context.get_account_gauges(self.__site, AccountType.VOLUME, UnitType.JPY)
+                jpy.update_value(interval, code, self._to_jpy(unit, notional))
 
 
 def main():
