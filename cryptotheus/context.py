@@ -17,6 +17,7 @@ class ProductType(Enum):
 
 class AccountType(Enum):
     BALANCE = 1
+    VOLUME = 2
 
 
 class UnitType(Enum):

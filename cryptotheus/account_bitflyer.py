@@ -1,3 +1,4 @@
+from datetime import timedelta, datetime
 from hashlib import sha256
 from hmac import new
 from os import getenv
@@ -37,6 +38,19 @@ class BitflyerAccount(Thread):
             'BTCJPY_MAT1WK': UnitType.BTC,
             'BTCJPY_MAT2WK': UnitType.BTC,
         }
+        self.__products = {
+            'BTC_JPY': UnitType.JPY,
+            'ETH_BTC': UnitType.BTC,
+            'BCH_BTC': UnitType.BTC,
+            'FX_BTC_JPY': UnitType.JPY,
+            'BTCJPY_MAT1WK': UnitType.JPY,
+            'BTCJPY_MAT2WK': UnitType.JPY,
+        }
+        self.__intervals = {
+            '01D': timedelta(days=1),
+            '07D': timedelta(days=7),
+            '30D': timedelta(days=30),
+        }
         self.__log = context.get_logger(self)
         self.__context = context
         self.__endpoint = endpoint
@@ -55,6 +69,7 @@ class BitflyerAccount(Thread):
                 Thread(daemon=True, target=self._fetch_balance),
                 Thread(daemon=True, target=self._fetch_collateral),
                 Thread(daemon=True, target=self._fetch_margin),
+                Thread(daemon=True, target=self._fetch_execution),
             ]
 
             for t in threads:
@@ -224,6 +239,81 @@ class BitflyerAccount(Thread):
 
             jpy = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, UnitType.JPY)
             jpy.update_value(self.__LABEL_MARGIN, code, unrealized)
+
+    def _fetch_execution(self):
+
+        now = datetime.now()
+
+        for code, unit in self.__products.items():
+
+            interval_notional = {}
+
+            try:
+
+                minimum_id = None
+
+                notionals = {}
+
+                while True:
+
+                    path = '/v1/me/getexecutions?count=500&product_code=%s' % code
+
+                    if minimum_id is not None:
+                        path = path + '&before=%s' % minimum_id
+
+                    json = self._json_get(path)
+
+                    count = 0
+
+                    for execution in json if json is not None else []:
+
+                        if 'id' not in execution:
+                            continue
+
+                        if 'price' not in execution:
+                            continue
+
+                        if 'size' not in execution:
+                            continue
+
+                        if 'exec_date' not in execution:
+                            continue
+
+                        if minimum_id is None:
+                            minimum_id = execution['id']
+                        else:
+                            minimum_id = min(minimum_id, execution['id'])
+
+                        exec_date = execution['exec_date'][:19] + ' +0000'
+
+                        exec_date = datetime.strptime(exec_date, '%Y-%m-%dT%H:%M:%S %z')
+
+                        for interval, delta in self.__intervals.items():
+
+                            if (exec_date + delta).timestamp() < now.timestamp():
+                                continue
+
+                            total = notionals[interval] if interval in notionals else 0
+
+                            notionals[interval] = total + (float(execution['price']) * float(execution['size']))
+
+                            count = count + 1
+
+                    if count == 0:
+                        break
+
+                self.__log.debug('Volume : %s - %s' % (code, str(notionals)))
+
+                interval_notional = notionals
+
+            except Exception as e:
+
+                self.__log.debug('Volume Failure : %s - %s', type(e), e.args)
+
+            for interval in self.__intervals.keys():
+                notional = interval_notional[interval] if interval in interval_notional else None
+                ccy = self.__context.get_account_gauges(self.__site, AccountType.VOLUME, unit)
+                ccy.update_value(interval, code, notional)
 
 
 def main():
