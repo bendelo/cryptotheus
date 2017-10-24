@@ -47,6 +47,9 @@ class BitflyerAccount(Thread):
             'BTCJPY_MAT2WK': UnitType.JPY,
         }
         self.__intervals = {
+            '01H': timedelta(hours=1),
+            '06H': timedelta(hours=6),
+            '12H': timedelta(hours=12),
             '01D': timedelta(days=1),
             '07D': timedelta(days=7),
             '30D': timedelta(days=30),
