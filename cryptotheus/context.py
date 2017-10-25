@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, auto
 from logging import Formatter, StreamHandler, DEBUG, INFO, getLogger
 from os import getenv
 from threading import Lock
@@ -7,25 +7,26 @@ from prometheus_client import Gauge, start_http_server
 
 
 class ProductType(Enum):
-    JPY_BTC = 1
-    USD_BTC = 2
-    BTC_BCH = 3
-    BTC_ETH = 4
-    JPY_USD = 5
-    JPY_EUR = 6
+    JPY_BTC = auto()
+    USD_BTC = auto()
+    BTC_BCH = auto()
+    BTC_ETH = auto()
+    JPY_USD = auto()
+    JPY_EUR = auto()
 
 
 class AccountType(Enum):
-    BALANCE = 1
-    VOLUME = 2
+    BALANCE = auto()
+    VOLUME = auto()
+    COLLATERAL = auto()
 
 
 class UnitType(Enum):
-    JPY = 1
-    USD = 2
-    BTC = 3
-    ETH = 4
-    BCH = 5
+    JPY = auto()
+    USD = auto()
+    BTC = auto()
+    ETH = auto()
+    BCH = auto()
 
 
 class TickerGauges(object):

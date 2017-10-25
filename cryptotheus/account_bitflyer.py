@@ -71,6 +71,7 @@ class BitflyerAccount(Thread):
             threads = [
                 Thread(daemon=True, target=self._fetch_balance),
                 Thread(daemon=True, target=self._fetch_collateral),
+                Thread(daemon=True, target=self._fetch_collateral_account),
                 Thread(daemon=True, target=self._fetch_margin),
                 Thread(daemon=True, target=self._fetch_execution),
             ]
@@ -172,6 +173,31 @@ class BitflyerAccount(Thread):
 
     def _fetch_collateral(self):
 
+        json = {}
+
+        try:
+
+            json = self._json_get('/v1/me/getcollateral')
+
+        except Exception as e:
+
+            self.__log.debug('Collateral Failure : %s - %s', type(e), e.args)
+
+        g = self.__context.get_account_gauges(self.__site, AccountType.COLLATERAL, UnitType.JPY)
+
+        value = json['collateral'] if 'collateral' in json else None
+        g.update_value('deposited', UnitType.JPY.name, value)
+
+        pl = json['open_position_pnl'] if 'open_position_pnl' in json else None
+        g.update_value('unrealized', UnitType.JPY.name, pl)
+
+        required = json['require_collateral'] if 'require_collateral' in json else None
+        g.update_value('required', UnitType.JPY.name, required)
+
+        self.__log.debug('Collateral : deposited = %s, unrealized = %s, required = %s', value, pl, required)
+
+    def _fetch_collateral_account(self):
+
         json = None
 
         try:
@@ -180,7 +206,7 @@ class BitflyerAccount(Thread):
 
         except Exception as e:
 
-            self.__log.debug('Collateral Failure : %s - %s', type(e), e.args)
+            self.__log.debug('Collateral Account Failure : %s - %s', type(e), e.args)
 
         for ccy, unit in self.__collateral.items():
 
@@ -198,7 +224,7 @@ class BitflyerAccount(Thread):
 
             g = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, unit)
             g.update_value(self.__LABEL_COLLATERAL, ccy, value)
-            self.__log.debug('Collateral : %s = %s', ccy, value)
+            self.__log.debug('Collateral Account : %s = %s', ccy, value)
 
             if unit != UnitType.JPY:
                 account = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, UnitType.JPY)
