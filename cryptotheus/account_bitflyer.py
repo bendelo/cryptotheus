@@ -283,6 +283,9 @@ class BitflyerAccount(Thread):
 
                 notionals = {}
 
+                for interval in self.__intervals.keys():
+                    notionals[interval] = 0.0
+
                 while True:
 
                     path = '/v1/me/getexecutions?count=500&product_code=%s' % code
@@ -322,9 +325,9 @@ class BitflyerAccount(Thread):
                             if (exec_date + delta).timestamp() < now.timestamp():
                                 continue
 
-                            total = notionals[interval] if interval in notionals else 0
+                            notional = float(execution['price']) * float(execution['size'])
 
-                            notionals[interval] = total + (float(execution['price']) * float(execution['size']))
+                            notionals[interval] = notionals[interval] + notional
 
                             count = count + 1
 
