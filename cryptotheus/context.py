@@ -1,5 +1,6 @@
 from enum import Enum, auto
 from logging import Formatter, StreamHandler, DEBUG, INFO, getLogger
+from math import nan
 from os import getenv
 from threading import Lock
 
@@ -33,7 +34,6 @@ class TickerGauges(object):
     # Constants
     __LABEL_ASK = 'ask'
     __LABEL_BID = 'bid'
-    __VALUE_NIL = 0.0
 
     # Static Variables
     __LCK = Lock()
@@ -62,25 +62,25 @@ class TickerGauges(object):
 
         return gauge
 
-    def update_bbo(self, code, ask, bid, mid=None, nil=__VALUE_NIL):
+    def update_bbo(self, code, ask, bid, mid=None):
         a = float(ask) if ask is not None and float(ask) != 0 else None
         b = float(bid) if bid is not None and float(bid) != 0 else None
         g = self.__get_gauge(TickerGauges.__BBO, 'ticker_bbo_', 'Best bid/offer price for ')
-        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_ASK)).set(a if a is not None else nil)
-        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_BID)).set(b if b is not None else nil)
+        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_ASK)).set(a if a is not None else nan)
+        g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_BID)).set(b if b is not None else nan)
 
         m = (float(ask) + float(bid)) * 0.5 if mid is None and ask is not None and bid is not None else mid
         g = self.__get_gauge(TickerGauges.__MID, 'ticker_mid_', 'Mid price for ')
-        g.labels("%s:%s" % (self.__site, code)).set(m if m is not None else nil)
+        g.labels("%s:%s" % (self.__site, code)).set(m if m is not None else nan)
 
         self.__cached_ask[code] = a
         self.__cached_bid[code] = b
         self.__cached_mid[code] = m
 
-    def update_ltp(self, code, ltp, nil=__VALUE_NIL):
+    def update_ltp(self, code, ltp):
         p = float(ltp) if ltp is not None else None
         g = self.__get_gauge(TickerGauges.__LTP, 'ticker_ltp_', 'Last trade price for ')
-        g.labels("%s:%s" % (self.__site, code)).set(p if p is not None else nil)
+        g.labels("%s:%s" % (self.__site, code)).set(p if p is not None else nan)
 
         self.__cached_ltp[code] = p
 
@@ -98,7 +98,6 @@ class TickerGauges(object):
 
 
 class AccountGauges(object):
-    __NIL = 0.0
     __LCK = Lock()
     __MAP = {}
 
@@ -128,7 +127,7 @@ class AccountGauges(object):
         return gauge
 
     def update_value(self, account_type, name, value):
-        v = value if value is not None else self.__NIL
+        v = value if value is not None else nan
         gauge = self.__get_gauge()
         gauge.labels(self.__site, account_type, name).set(v)
 
