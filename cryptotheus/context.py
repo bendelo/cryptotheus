@@ -69,7 +69,8 @@ class TickerGauges(object):
         g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_ASK)).set(a if a is not None else nan)
         g.labels("%s:%s:%s" % (self.__site, code, self.__LABEL_BID)).set(b if b is not None else nan)
 
-        m = (float(ask) + float(bid)) * 0.5 if mid is None and ask is not None and bid is not None else mid
+        m = float(mid) if mid is not None and float(mid) != 0 else None
+        m = (a + b) * 0.5 if m is None and a is not None and b is not None else m
         g = self.__get_gauge(TickerGauges.__MID, 'ticker_mid_', 'Mid price for ')
         g.labels("%s:%s" % (self.__site, code)).set(m if m is not None else nan)
 
@@ -78,7 +79,7 @@ class TickerGauges(object):
         self.__cached_mid[code] = m
 
     def update_ltp(self, code, ltp):
-        p = float(ltp) if ltp is not None else None
+        p = float(ltp) if ltp is not None and float(ltp) != 0 else None
         g = self.__get_gauge(TickerGauges.__LTP, 'ticker_ltp_', 'Last trade price for ')
         g.labels("%s:%s" % (self.__site, code)).set(p if p is not None else nan)
 
