@@ -10,13 +10,22 @@ from cryptotheus.ticker_oanda import OandaTicker
 
 class BitmexTicker(Thread):
     def __init__(self, context,
-                 endpoint=getenv('bitmex_endpoint', 'https://www.bitmex.com/api/v1/quote?count=1&reverse=true&symbol='),
+                 endpoint=getenv('bitmex_endpoint', 'https://www.bitmex.com'),
                  interval=getenv('bitmex_interval', 15)
                  ):
         super(BitmexTicker, self).__init__()
         self.__site = 'bitmex'
         self.__targets = {
             'XBTUSD': ProductType.USD_BTC,
+            'XBT_QT': ProductType.USD_BTC,
+            'XBJ_QT': ProductType.JPY_BTC,
+            'ETH_QT': ProductType.BTC_ETH,
+        }
+        self.__symbols = {
+            'XBTUSD': 'XBT:perpetual',
+            'XBT_QT': 'XBT:quarterly',
+            'XBJ_QT': 'XBJ:quarterly',
+            'ETH_QT': 'ETH:quarterly',
         }
         self.__context = context
         self.__endpoint = endpoint
@@ -26,10 +35,12 @@ class BitmexTicker(Thread):
 
         while self.__context.is_active():
 
+            mappings = self.mappings()
+
             threads = []
 
             for code, product in self.__targets.items():
-                threads.append(Thread(daemon=True, target=self.fetch, args=[code, product]))
+                threads.append(Thread(daemon=True, target=self.fetch, args=[mappings, code, product]))
 
             for t in threads:
                 t.start()
@@ -39,7 +50,29 @@ class BitmexTicker(Thread):
 
             sleep(self.__interval)
 
-    def fetch(self, code, product):
+    def mappings(self):
+
+        log = self.__context.get_logger(self)
+
+        mappings = {}
+
+        try:
+
+            json = get(self.__endpoint + '/api/v1/instrument/activeIntervals').json()
+
+            intervals = json['intervals']
+            symbols = json['symbols']
+
+            for index, interval in enumerate(intervals):
+                mappings[interval] = symbols[index]
+
+        except Exception as e:
+
+            log.debug('%s : %s', type(e), e.args)
+
+        return mappings
+
+    def fetch(self, mappings, code, product):
 
         log = self.__context.get_logger(self)
         ask = None
@@ -47,14 +80,16 @@ class BitmexTicker(Thread):
 
         try:
 
-            records = get(self.__endpoint + code).json()
+            symbol = mappings[self.__symbols[code]]
+
+            records = get(self.__endpoint + '/api/v1/quote?count=1&reverse=true&symbol=' + symbol).json()
 
             for json in records if records is not None else []:
 
                 if 'symbol' not in json:
                     continue
 
-                if code != json['symbol']:
+                if symbol != json['symbol']:
                     continue
 
                 ask = json['askPrice'] if 'askPrice' in json else None
