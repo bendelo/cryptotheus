@@ -5,7 +5,6 @@ from time import sleep
 from requests import get
 
 from cryptotheus.context import ProductType, CryptotheusContext
-from cryptotheus.ticker_oanda import OandaTicker
 
 
 class PoloniexTicker(Thread):
@@ -53,15 +52,6 @@ class PoloniexTicker(Thread):
                 gauges.update_ltp(code, ltp)
 
                 log.debug('%s : ask=%s bid=%s ltp=%s', code, ask, bid, ltp)
-
-                if product == ProductType.USD_BTC:
-                    ticker = self.__context.get_ticker_gauges(OandaTicker.get_site(), ProductType.JPY_USD)
-                    rate = ticker.get_cached_mid(OandaTicker.get_code(ProductType.JPY_USD))
-                    j_ask = float(ask) * float(rate) if ask is not None and rate is not None else None
-                    j_bid = float(bid) * float(rate) if bid is not None and rate is not None else None
-                    j_ltp = float(ltp) * float(rate) if ltp is not None and rate is not None else None
-                    self.__context.get_ticker_gauges(self.__site, ProductType.JPY_BTC).update_bbo(code, j_ask, j_bid)
-                    self.__context.get_ticker_gauges(self.__site, ProductType.JPY_BTC).update_ltp(code, j_ltp)
 
             sleep(self.__interval)
 
