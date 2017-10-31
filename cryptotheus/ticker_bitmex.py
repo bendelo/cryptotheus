@@ -5,7 +5,6 @@ from time import sleep
 from requests import get
 
 from cryptotheus.context import ProductType, CryptotheusContext
-from cryptotheus.ticker_oanda import OandaTicker
 
 
 class BitmexTicker(Thread):
@@ -34,19 +33,11 @@ class BitmexTicker(Thread):
     def run(self):
 
         while self.__context.is_active():
-
             mappings = self.mappings()
 
-            threads = []
+            instruments = self.instruments()
 
-            for code, product in self.__targets.items():
-                threads.append(Thread(daemon=True, target=self.fetch, args=[mappings, code, product]))
-
-            for t in threads:
-                t.start()
-
-            for t in threads:
-                t.join()
+            self.extract(mappings, instruments)
 
             sleep(self.__interval)
 
@@ -72,45 +63,59 @@ class BitmexTicker(Thread):
 
         return mappings
 
-    def fetch(self, mappings, code, product):
+    def instruments(self):
 
         log = self.__context.get_logger(self)
-        ask = None
-        bid = None
+
+        instruments = {}
 
         try:
 
-            symbol = mappings[self.__symbols[code]]
+            json = get(self.__endpoint + '/api/v1/instrument/activeAndIndices').json()
 
-            records = get(self.__endpoint + '/api/v1/quote?count=1&reverse=true&symbol=' + symbol).json()
-
-            for json in records if records is not None else []:
-
-                if 'symbol' not in json:
-                    continue
-
-                if symbol != json['symbol']:
-                    continue
-
-                ask = json['askPrice'] if 'askPrice' in json else None
-                bid = json['bidPrice'] if 'bidPrice' in json else None
-                break
-
-            log.debug('%s : ask=%s bid=%s', code, ask, bid)
+            for element in json:
+                instruments[element['symbol']] = element
 
         except Exception as e:
 
             log.debug('%s : %s', type(e), e.args)
 
-        gauges = self.__context.get_ticker_gauges(self.__site, product)
-        gauges.update_bbo(code, ask, bid)
+        return instruments
 
-        if product == ProductType.USD_BTC:
-            ticker = self.__context.get_ticker_gauges(OandaTicker.get_site(), ProductType.JPY_USD)
-            rate = ticker.get_cached_mid(OandaTicker.get_code(ProductType.JPY_USD))
-            j_ask = float(ask) * float(rate) if ask is not None and rate is not None else None
-            j_bid = float(bid) * float(rate) if bid is not None and rate is not None else None
-            self.__context.get_ticker_gauges(self.__site, ProductType.JPY_BTC).update_bbo(code, j_ask, j_bid)
+    def extract(self, mappings, instruments):
+
+        log = self.__context.get_logger(self)
+
+        for code, product in self.__targets.items():
+            symbol = self.__symbols[code]
+            symbol = mappings[symbol] if symbol in mappings else None
+
+            instrument = instruments[symbol] if symbol in instruments else {}
+            ask = instrument['askPrice'] if 'askPrice' in instrument else None
+            bid = instrument['bidPrice'] if 'bidPrice' in instrument else None
+            mid = instrument['midPrice'] if 'midPrice' in instrument else None
+            ltp = instrument['lastPrice'] if 'lastPrice' in instrument else None
+
+            gauges = self.__context.get_ticker_gauges(self.__site, product)
+            gauges.update_bbo(code, ask, bid, mid=mid)
+            gauges.update_ltp(code, ltp)
+            log.debug('%s : ask=%s bid=%s mid=%s ltp=%s', code, ask, bid, mid, ltp)
+
+            while 'referenceSymbol' in instrument:
+
+                ref = instrument['referenceSymbol']
+
+                if 'symbol' not in instrument or ref == instrument['symbol']:
+                    break
+
+                if ref not in instruments:
+                    break
+
+                instrument = instruments[ref]
+                ltp = instrument['markPrice'] if 'markPrice' in instrument else None
+
+                gauges.update_ltp(ref, ltp)
+                log.debug('%s : mrk=%s', ref, ltp)
 
 
 def main():
