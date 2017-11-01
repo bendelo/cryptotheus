@@ -1,4 +1,5 @@
 from cryptotheus import account_bitflyer
+from cryptotheus import account_bitmex
 from cryptotheus import context
 from cryptotheus import ticker_bitfinex
 from cryptotheus import ticker_bitflyer
@@ -21,3 +22,4 @@ QuoineTicker = ticker_quoine.QuoineTicker
 ZaifTicker = ticker_zaif.ZaifTicker
 
 BitflyerAccount = account_bitflyer.BitflyerAccount
+BitmexAccount = account_bitmex.BitmexAccount

@@ -17,6 +17,7 @@ def main():
     cryptotheus.ZaifTicker(context).start()
 
     cryptotheus.BitflyerAccount(context).start()
+    cryptotheus.BitmexAccount(context).start()
 
 
 if __name__ == '__main__':
