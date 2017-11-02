@@ -96,7 +96,7 @@ class BitmexAccount(Thread):
                 if ccy != asset['currency']:
                     continue
 
-                val = (asset['amount'] * self.__SATOSHI) if 'amount' in asset else None
+                val = (asset['walletBalance'] * self.__SATOSHI) if 'walletBalance' in asset else None
                 upl = (asset['unrealisedPnl'] * self.__SATOSHI) if 'unrealisedPnl' in asset else None
                 exc = (asset['excessMargin'] * self.__SATOSHI) if 'excessMargin' in asset else None
 
