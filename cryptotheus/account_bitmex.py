@@ -11,7 +11,6 @@ from cryptotheus.context import AccountType, UnitType, CryptotheusContext
 
 class BitmexAccount(Thread):
     __SATOSHI = 0.00000001
-    __LABEL_COLLATERAL = 'collateral'
 
     def __init__(self, context,
                  endpoint=getenv('bitmex_endpoint', 'https://www.bitmex.com'),
@@ -23,6 +22,11 @@ class BitmexAccount(Thread):
         self.__site = 'bitmex'
         self.__balances = {
             'XBt': UnitType.BTC,
+        }
+        self.__positions = {
+            'XBT:perpetual': UnitType.BTC,
+            'XBT:quarterly': UnitType.BTC,
+            'XBJ:quarterly': UnitType.BTC
         }
         self.__log = context.get_logger(self)
         self.__context = context
@@ -37,6 +41,7 @@ class BitmexAccount(Thread):
 
             threads = [
                 Thread(daemon=True, target=self._fetch_collateral),
+                Thread(daemon=True, target=self._fetch_position),
             ]
 
             for t in threads:
@@ -105,6 +110,77 @@ class BitmexAccount(Thread):
             g.update_value('unrealized', ccy, upl)
             g.update_value('excess', ccy, exc)
             self.__log.debug('Collateral : deposited = %s, unrealized = %s, excess = %s', val, upl, exc)
+
+    def _fetch_position(self):
+
+        try:
+
+            json = self._json_get('/api/v1/instrument/activeIntervals')
+
+            intervals = json['intervals'] if 'intervals' in json else []
+
+            symbols = json['symbols'] if 'symbols' in json else []
+
+            mappings = {}
+
+            for index, interval in enumerate(intervals):
+                mappings[interval] = symbols[index]
+
+        except Exception as e:
+
+            mappings = {}
+
+            self.__log.debug('Interval Failure : %s - %s', type(e), e.args)
+
+        initial = 0
+
+        try:
+
+            json = self._json_get('/api/v1/position')
+
+        except Exception as e:
+
+            json = []
+
+            initial = None
+
+            self.__log.debug('Position Failure : %s - %s', type(e), e.args)
+
+        for interval, unit in self.__positions.items():
+
+            symbol = mappings[interval] if interval in mappings else None
+
+            current = initial if symbol is not None else None
+            realized = initial if symbol is not None else None
+            unrealized = initial if symbol is not None else None
+
+            for position in json:
+
+                if 'symbol' not in position or symbol != position['symbol']:
+                    continue
+
+                if 'currentQty' in position:
+                    current = position['currentQty']
+
+                if 'realisedPnl' in position:
+                    realized = position['realisedPnl']
+                    realized = realized * self.__SATOSHI if realized is not None else None
+
+                if 'unrealisedPnl' in position:
+                    unrealized = position['unrealisedPnl']
+                    unrealized = unrealized * self.__SATOSHI if unrealized is not None else None
+
+                break
+
+            g = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, unit)
+            g.update_value('position', interval, current)
+
+            g = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, UnitType.BTC)
+            g.update_value('realized', interval, realized)
+            g.update_value('unrealized', interval, unrealized)
+
+            self.__log.debug('Position %s (%s) : position = %s, realized = %s, unrealized = %s',
+                             interval, symbol, current, realized, unrealized)
 
 
 def main():
