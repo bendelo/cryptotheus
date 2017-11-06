@@ -59,7 +59,7 @@ class BitmexTicker(Thread):
 
         except Exception as e:
 
-            log.debug('%s : %s', type(e), e.args)
+            log.warn('%s : %s', type(e), e.args)
 
         return mappings
 
@@ -78,7 +78,7 @@ class BitmexTicker(Thread):
 
         except Exception as e:
 
-            log.debug('%s : %s', type(e), e.args)
+            log.warn('%s : %s', type(e), e.args)
 
         return instruments
 

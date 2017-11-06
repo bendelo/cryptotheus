@@ -38,7 +38,7 @@ class PoloniexTicker(Thread):
 
             except Exception as e:
 
-                log.debug('%s : %s', type(e), e.args)
+                log.warn('%s : %s', type(e), e.args)
 
             for code, product in self.__targets.items():
                 json = tickers[code] if code in tickers else {}

@@ -77,7 +77,7 @@ class BitmexAccount(Thread):
 
         with self.__lock:
 
-            sleep(0.001)
+            sleep(0.01)
 
             timestamp = str(int(time() * 1000))
 
@@ -115,7 +115,7 @@ class BitmexAccount(Thread):
 
         except Exception as e:
 
-            self.__log.debug('Mapping Failure : %s - %s', type(e), e.args)
+            self.__log.warn('Mapping Failure : %s - %s', type(e), e.args)
 
             return {}
 
@@ -129,7 +129,7 @@ class BitmexAccount(Thread):
 
         except Exception as e:
 
-            self.__log.debug('Collateral Failure : %s - %s', type(e), e.args)
+            self.__log.warn('Collateral Failure : %s - %s', type(e), e.args)
 
         for ccy, unit in self.__balances.items():
 
@@ -169,7 +169,7 @@ class BitmexAccount(Thread):
 
             initial = None
 
-            self.__log.debug('Position Failure : %s - %s', type(e), e.args)
+            self.__log.warn('Position Failure : %s - %s', type(e), e.args)
 
         for alias, unit in self.__positions.items():
 
@@ -261,7 +261,7 @@ class BitmexAccount(Thread):
 
             except Exception as e:
 
-                self.__log.debug('Execution Failure : %s - %s', type(e), e.args)
+                self.__log.warn('Execution Failure : %s - %s', type(e), e.args)
 
             for interval in self.__intervals.keys():
                 g = self.__context.get_account_gauges(self.__site, AccountType.VOLUME, unit)

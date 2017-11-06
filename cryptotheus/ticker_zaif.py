@@ -59,7 +59,7 @@ class ZaifTicker(Thread):
 
         except Exception as e:
 
-            log.debug('%s : %s', type(e), e.args)
+            log.warn('%s : %s', type(e), e.args)
 
         gauges = self.__context.get_ticker_gauges(self.__site, product)
         gauges.update_bbo(code, ask, bid)

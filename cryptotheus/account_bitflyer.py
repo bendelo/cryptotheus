@@ -141,7 +141,7 @@ class BitflyerAccount(Thread):
 
         except Exception as e:
 
-            self.__log.debug('Balance Failure : %s - %s', type(e), e.args)
+            self.__log.warn('Balance Failure : %s - %s', type(e), e.args)
 
         for ccy, unit in self.__balances.items():
 
@@ -181,7 +181,7 @@ class BitflyerAccount(Thread):
 
         except Exception as e:
 
-            self.__log.debug('Collateral Failure : %s - %s', type(e), e.args)
+            self.__log.warn('Collateral Failure : %s - %s', type(e), e.args)
 
         g = self.__context.get_account_gauges(self.__site, AccountType.COLLATERAL, UnitType.JPY)
 
@@ -206,7 +206,7 @@ class BitflyerAccount(Thread):
 
         except Exception as e:
 
-            self.__log.debug('Collateral Account Failure : %s - %s', type(e), e.args)
+            self.__log.warn('Collateral Account Failure : %s - %s', type(e), e.args)
 
         for ccy, unit in self.__collateral.items():
 
@@ -242,7 +242,7 @@ class BitflyerAccount(Thread):
 
             except Exception as e:
 
-                self.__log.debug('Margin Failure : %s - %s', type(e), e.args)
+                self.__log.warn('Margin Failure : %s - %s', type(e), e.args)
 
             quantity = 0.0
             unrealized = 0.0
@@ -340,7 +340,7 @@ class BitflyerAccount(Thread):
 
             except Exception as e:
 
-                self.__log.debug('Volume Failure : %s - %s', type(e), e.args)
+                self.__log.warn('Volume Failure : %s - %s', type(e), e.args)
 
             for interval in self.__intervals.keys():
                 notional = interval_notional[interval] if interval in interval_notional else None
