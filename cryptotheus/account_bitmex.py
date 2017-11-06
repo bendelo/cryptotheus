@@ -1,6 +1,7 @@
 from hashlib import sha256
 from hmac import new
 from os import getenv
+from threading import Lock
 from threading import Thread
 from time import sleep, time
 
@@ -34,14 +35,17 @@ class BitmexAccount(Thread):
         self.__interval = interval
         self.__key = key
         self.__secret = secret
+        self.__lock = Lock()
 
     def run(self):
 
         while self.__context.is_active():
 
+            mappings = self._get_mapping()
+
             threads = [
                 Thread(daemon=True, target=self._fetch_collateral),
-                Thread(daemon=True, target=self._fetch_position),
+                Thread(daemon=True, target=self._fetch_position, args=(mappings,)),
             ]
 
             for t in threads:
@@ -60,20 +64,49 @@ class BitmexAccount(Thread):
         if self.__secret is None:
             return None
 
-        timestamp = str(int(time() * 1000))
+        with self.__lock:
 
-        data = method + path + timestamp + body
+            sleep(0.001)
 
-        digest = new(str.encode(self.__secret), str.encode(data), sha256).hexdigest()
+            timestamp = str(int(time() * 1000))
 
-        headers = {
-            "api-key": self.__key,
-            "api-nonce": timestamp,
-            "api-signature": digest,
-            "Accept": "application/json"
-        }
+            data = method + path + timestamp + body
 
-        return request('GET', self.__endpoint + path, headers=headers).json()
+            digest = new(str.encode(self.__secret), str.encode(data), sha256).hexdigest()
+
+            headers = {
+                "api-key": self.__key,
+                "api-nonce": timestamp,
+                "api-signature": digest,
+                "Accept": "application/json"
+            }
+
+            result = request('GET', self.__endpoint + path, headers=headers).json()
+
+        return result
+
+    def _get_mapping(self):
+
+        try:
+
+            json = self._json_get('/api/v1/instrument/activeIntervals')
+
+            intervals = json['intervals'] if 'intervals' in json else []
+
+            symbols = json['symbols'] if 'symbols' in json else []
+
+            mappings = {}
+
+            for index, interval in enumerate(intervals):
+                mappings[interval] = symbols[index]
+
+            return mappings
+
+        except Exception as e:
+
+            self.__log.debug('Interval Failure : %s - %s', type(e), e.args)
+
+            return {}
 
     def _fetch_collateral(self):
 
@@ -111,32 +144,13 @@ class BitmexAccount(Thread):
             g.update_value('excess', ccy, exc)
             self.__log.debug('Collateral : deposited = %s, unrealized = %s, excess = %s', val, upl, exc)
 
-    def _fetch_position(self):
-
-        try:
-
-            json = self._json_get('/api/v1/instrument/activeIntervals')
-
-            intervals = json['intervals'] if 'intervals' in json else []
-
-            symbols = json['symbols'] if 'symbols' in json else []
-
-            mappings = {}
-
-            for index, interval in enumerate(intervals):
-                mappings[interval] = symbols[index]
-
-        except Exception as e:
-
-            mappings = {}
-
-            self.__log.debug('Interval Failure : %s - %s', type(e), e.args)
-
-        initial = 0
+    def _fetch_position(self, mappings):
 
         try:
 
             json = self._json_get('/api/v1/position')
+
+            initial = 0
 
         except Exception as e:
 
