@@ -55,6 +55,7 @@ class BitflyerAccount(Thread):
             '30D': timedelta(days=30),
         }
         self.__log = context.get_logger(self)
+        self.__log.info('endpoint=[%s] interval=[%s] key=[%s]', endpoint, interval, key)
         self.__context = context
         self.__endpoint = endpoint
         self.__interval = interval
