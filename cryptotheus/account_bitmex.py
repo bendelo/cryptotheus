@@ -40,6 +40,7 @@ class BitmexAccount(Thread):
             '30D': timedelta(days=30),
         }
         self.__log = context.get_logger(self)
+        self.__log.info('endpoint=[%s] interval=[%s] key=[%s]', endpoint, interval, key)
         self.__context = context
         self.__endpoint = endpoint
         self.__interval = interval
@@ -220,11 +221,11 @@ class BitmexAccount(Thread):
             quantities = {}
 
             for interval in self.__intervals.keys():
-                quantities[interval] = 0.0
+                quantities[interval] = 0.0 if symbol is not None else None
 
             try:
 
-                while True:
+                while symbol is not None:
 
                     path = '/api/v1/execution/tradeHistory?count=500&reverse=true&symbol=' + parse.quote(symbol)
 
