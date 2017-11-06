@@ -1,9 +1,11 @@
+from datetime import timedelta, datetime
 from hashlib import sha256
 from hmac import new
 from os import getenv
 from threading import Lock
 from threading import Thread
 from time import sleep, time
+from urllib import parse
 
 from requests import request
 
@@ -29,6 +31,14 @@ class BitmexAccount(Thread):
             'XBT:quarterly': UnitType.BTC,
             'XBJ:quarterly': UnitType.BTC
         }
+        self.__intervals = {
+            '01H': timedelta(hours=1),
+            '06H': timedelta(hours=6),
+            '12H': timedelta(hours=12),
+            '01D': timedelta(days=1),
+            '07D': timedelta(days=7),
+            '30D': timedelta(days=30),
+        }
         self.__log = context.get_logger(self)
         self.__context = context
         self.__endpoint = endpoint
@@ -46,6 +56,7 @@ class BitmexAccount(Thread):
             threads = [
                 Thread(daemon=True, target=self._fetch_collateral),
                 Thread(daemon=True, target=self._fetch_position, args=(mappings,)),
+                Thread(daemon=True, target=self._fetch_execution, args=(mappings,)),
             ]
 
             for t in threads:
@@ -104,7 +115,7 @@ class BitmexAccount(Thread):
 
         except Exception as e:
 
-            self.__log.debug('Interval Failure : %s - %s', type(e), e.args)
+            self.__log.debug('Mapping Failure : %s - %s', type(e), e.args)
 
             return {}
 
@@ -160,9 +171,9 @@ class BitmexAccount(Thread):
 
             self.__log.debug('Position Failure : %s - %s', type(e), e.args)
 
-        for interval, unit in self.__positions.items():
+        for alias, unit in self.__positions.items():
 
-            symbol = mappings[interval] if interval in mappings else None
+            symbol = mappings[alias] if alias in mappings else None
 
             current = initial if symbol is not None else None
             realized = initial if symbol is not None else None
@@ -187,14 +198,74 @@ class BitmexAccount(Thread):
                 break
 
             g = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, unit)
-            g.update_value('position', interval, current)
+            g.update_value('position', alias, current)
 
             g = self.__context.get_account_gauges(self.__site, AccountType.BALANCE, UnitType.BTC)
-            g.update_value('realized', interval, realized)
-            g.update_value('unrealized', interval, unrealized)
+            g.update_value('realized', alias, realized)
+            g.update_value('unrealized', alias, unrealized)
 
             self.__log.debug('Position %s (%s) : position = %s, realized = %s, unrealized = %s',
-                             interval, symbol, current, realized, unrealized)
+                             alias, symbol, current, realized, unrealized)
+
+    def _fetch_execution(self, mappings):
+
+        now = datetime.now()
+
+        for alias, unit in self.__positions.items():
+
+            symbol = mappings[alias] if alias in mappings else None
+
+            end_time = None
+
+            quantities = {}
+
+            for interval in self.__intervals.keys():
+                quantities[interval] = 0.0
+
+            try:
+
+                while True:
+
+                    path = '/api/v1/execution/tradeHistory?count=500&reverse=true&symbol=' + parse.quote(symbol)
+
+                    path = path if end_time is None else path + '&endTime=' + parse.quote(end_time)
+
+                    json = self._json_get(path)
+
+                    count = 0
+
+                    for execution in json if json is not None else []:
+
+                        if 'transactTime' not in execution or 'lastQty' not in execution:
+                            continue
+
+                        quantity = execution['lastQty']
+
+                        end_time = execution['transactTime']
+
+                        exec_date = datetime.strptime(end_time[:19] + ' +0000', '%Y-%m-%dT%H:%M:%S %z')
+
+                        for interval, delta in self.__intervals.items():
+
+                            if (exec_date + delta).timestamp() < now.timestamp():
+                                continue
+
+                            quantities[interval] = quantities[interval] + quantity
+
+                            count = count + 1
+
+                    if count == 0:
+                        break
+
+                self.__log.debug('Execution : %s - %s' % (alias, str(quantities)))
+
+            except Exception as e:
+
+                self.__log.debug('Execution Failure : %s - %s', type(e), e.args)
+
+            for interval in self.__intervals.keys():
+                g = self.__context.get_account_gauges(self.__site, AccountType.VOLUME, unit)
+                g.update_value(interval, alias, quantities[interval])
 
 
 def main():
