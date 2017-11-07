@@ -225,11 +225,11 @@ class BitmexAccount(Thread):
 
             try:
 
+                start = 0
+                
                 while symbol is not None:
 
-                    path = '/api/v1/execution/tradeHistory?count=500&reverse=true&symbol=' + parse.quote(symbol)
-
-                    path = path if end_time is None else path + '&endTime=' + parse.quote(end_time)
+                    path = '/api/v1/execution/tradeHistory?start=' + str(start) + '&count=500&reverse=true&symbol=' + parse.quote(symbol)
 
                     json = self._json_get(path)
 
@@ -255,8 +255,10 @@ class BitmexAccount(Thread):
 
                             count = count + 1
 
-                    if count == 0:
+                    if count < 500:
                         break
+                        
+                    start = start + count
 
                 self.__log.debug('Execution : %s - %s' % (alias, str(quantities)))
 
